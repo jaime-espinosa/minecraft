@@ -6,6 +6,7 @@ const form = $('settings-form'), generateButton = $('generate-button'), canvas =
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 const status = $('status'), resultContent = $('result-content'), placeholder = $('result-placeholder');
 const download = $('download-button'), resetButton = $('reset-button'), autoColors = $('auto-colors'), colorGrid = $('color-grid');
+const fidelityScore = $('fidelity-score'), fidelityValue = fidelityScore.querySelector('output');
 const colorIds = ['skin-color', 'hair-color', 'shirt-color', 'pants-color', 'shoe-color'];
 const cropEditor = $('face-crop-editor'), cropPreview = $('face-crop-preview'), cropPreviewCtx = cropPreview.getContext('2d');
 const cropX = $('crop-x'), cropY = $('crop-y'), cropZoom = $('crop-zoom'), faceDetectionStatus = $('face-detection-status');
@@ -57,16 +58,35 @@ function paletteFromImage() {
   return { skin:average(facePixels,{x:9,y:10,w:14,h:12}), hair:average(facePixels,{x:7,y:1,w:18,h:9}), shirt:average(fullPixels,{x:8,y:19,w:16,h:8}), pants:average(fullPixels,{x:5,y:27,w:8,h:5}), shoes:average(fullPixels,{x:4,y:30,w:10,h:2}), tiny };
 }
 function paintFace(palette) {
-  if (palette.tiny) {
-    const portrait = document.createElement('canvas'); portrait.width = portrait.height = 8;
-    const portraitCtx = portrait.getContext('2d'); portraitCtx.drawImage(palette.tiny, 8, 4, 16, 16, 0, 0, 8, 8);
-    ctx.imageSmoothingEnabled = false; ctx.drawImage(portrait, 8, 8, 8, 8);
-  }
-  fill(9, 11, 2, 1, '#24201e'); fill(13, 11, 2, 1, '#24201e'); fill(11, 14, 2, 1, shade(palette.skin, .62));
-  const hair = palette.hair;
+  const hair = palette.hair, feature = '#24201e', smile = shade(hair, .65);
+  fill(9, 10, 2, 1, hair); fill(13, 10, 2, 1, hair);
+  fill(9, 11, 1, 1, feature); fill(14, 11, 1, 1, feature);
+  fill(11, 12, 2, 1, shade(palette.skin, .62)); fill(10, 14, 4, 1, smile);
+  fill(8, 15, 8, 1, shade(palette.shirt, .62));
   const accessory = $('accessory').value;
   if (accessory === 'glasses') { fill(8, 11, 8, 1, '#26272a'); fill(9, 12, 2, 1, '#b8d5d0'); fill(13, 12, 2, 1, '#b8d5d0'); }
   if (accessory === 'beard') { fill(9, 14, 6, 2, shade(hair, .78)); fill(8, 14, 1, 1, shade(hair, .78)); }
+}
+function colorScore(actual, expected) {
+  const distance = Math.abs(actual[0] - expected[0]) + Math.abs(actual[1] - expected[1]) + Math.abs(actual[2] - expected[2]);
+  return 1 - distance / 765;
+}
+function rgbFromHex(value) { const hexValue = value.replace('#', ''); return [0, 2, 4].map((index) => parseInt(hexValue.slice(index, index + 2), 16)); }
+function scoreReference(palette) {
+  const cells = Array.from({ length: 64 }, () => ({ color: palette.skin, weight: 1 }));
+  const set = (x, y, color, weight) => { cells[y * 8 + x] = { color, weight }; };
+  [[9,10],[10,10],[13,10],[14,10]].forEach(([x,y]) => set(x - 8, y - 8, palette.hair, 4));
+  [[9,11],[14,11]].forEach(([x,y]) => set(x - 8, y - 8, '#24201e', 5));
+  [[11,12],[12,12]].forEach(([x,y]) => set(x - 8, y - 8, shade(palette.skin, .62), 3));
+  [[10,14],[11,14],[12,14],[13,14]].forEach(([x,y]) => set(x - 8, y - 8, shade(palette.hair, .65), 4));
+  for (let x = 0; x < 8; x += 1) set(x, 7, shade(palette.shirt, .62), 2);
+  const pixels = ctx.getImageData(8, 8, 8, 8).data;
+  let total = 0, weighted = 0;
+  cells.forEach((cell, index) => { weighted += colorScore(pixels.slice(index * 4, index * 4 + 3), rgbFromHex(cell.color)) * cell.weight; total += cell.weight; });
+  const hairPixels = ctx.getImageData(40, 8, 8, 3).data;
+  const hairTarget = rgbFromHex(palette.hair);
+  for (let index = 0; index < 24; index += 1) { weighted += colorScore(hairPixels.slice(index * 4, index * 4 + 3), hairTarget) * 3; total += 3; }
+  return weighted / total;
 }
 function paintHairOverlay(color) {
   const style = $('hair-style').value;
@@ -98,6 +118,7 @@ function generateSkin() {
   fill(4, 29, 4, 3, colors.shoes); fill(20, 61, 4, 3, colors.shoes);
   paintOuterLayers(colors); paintFace(colors); paintHairOverlay(colors.hair);
   if ($('accessory').value === 'jacket') { fill(20, 36, 8, 12, shade(colors.shirt, .83)); fill(20, 36, 8, 1, shade(colors.shirt, 1.15)); }
+  const score = scoreReference(colors); fidelityValue.value = score.toFixed(2); fidelityValue.textContent = score.toFixed(2); fidelityScore.dataset.score = score.toFixed(4); fidelityScore.hidden = false;
   viewer.setSlim($('slim').checked); viewer.updateSkin();
 }
 function updateDownload() { canvas.toBlob((blob) => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); downloadUrl = URL.createObjectURL(blob); download.href = downloadUrl; skinSheetImage.src = downloadUrl; download.hidden = false; }); }
@@ -128,4 +149,4 @@ async function detectFace() {
 }
 form.addEventListener('submit', (event) => { event.preventDefault(); if (!sourceImage) return; generateButton.disabled = true; setStatus('Forging your skin...', 'working'); requestAnimationFrame(() => { generateSkin(); updateDownload(); placeholder.hidden = true; resultContent.hidden = false; resetButton.hidden = false; generateButton.disabled = false; setStatus('Skin forged. Rotate your player, then download the PNG.'); }); });
 $('view-reset').addEventListener('click', () => viewer.resetView());
-resetButton.addEventListener('click', () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); if (downloadUrl) URL.revokeObjectURL(downloadUrl); sourceUrl = downloadUrl = null; sourceImage = null; input.value = ''; sourcePreview.hidden = true; sourcePreview.removeAttribute('src'); skinSheetImage.removeAttribute('src'); cropEditor.hidden = true; dropZone.classList.remove('has-image'); dropZone.querySelectorAll('.upload-prompt').forEach((node) => node.hidden = false); ctx.clearRect(0,0,64,64); viewer.updateSkin(); generateButton.disabled = true; placeholder.hidden = false; resultContent.hidden = true; download.hidden = true; resetButton.hidden = true; setStatus('Choose a portrait to begin.'); });
+resetButton.addEventListener('click', () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); if (downloadUrl) URL.revokeObjectURL(downloadUrl); sourceUrl = downloadUrl = null; sourceImage = null; input.value = ''; sourcePreview.hidden = true; sourcePreview.removeAttribute('src'); skinSheetImage.removeAttribute('src'); cropEditor.hidden = true; fidelityScore.hidden = true; fidelityScore.removeAttribute('data-score'); dropZone.classList.remove('has-image'); dropZone.querySelectorAll('.upload-prompt').forEach((node) => node.hidden = false); ctx.clearRect(0,0,64,64); viewer.updateSkin(); generateButton.disabled = true; placeholder.hidden = false; resultContent.hidden = true; download.hidden = true; resetButton.hidden = true; setStatus('Choose a portrait to begin.'); });
