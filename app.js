@@ -2,7 +2,7 @@ import { createSkinViewer } from './viewer.js';
 
 const $ = (id) => document.getElementById(id);
 const input = $('image-input'), dropZone = $('drop-zone'), sourcePreview = $('source-preview');
-const form = $('settings-form'), generateButton = $('generate-button'), canvas = $('skin-canvas');
+const form = $('settings-form'), generateButton = $('generate-button'), canvas = $('skin-canvas'), skinSheetImage = $('skin-sheet-image');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 const status = $('status'), resultContent = $('result-content'), placeholder = $('result-placeholder');
 const download = $('download-button'), resetButton = $('reset-button'), autoColors = $('auto-colors'), colorGrid = $('color-grid');
@@ -69,7 +69,7 @@ function generateSkin() {
   if ($('accessory').value === 'jacket') { fill(20, 36, 8, 12, shade(colors.shirt, .83)); fill(20, 36, 8, 1, shade(colors.shirt, 1.15)); }
   viewer.setSlim($('slim').checked); viewer.updateSkin();
 }
-function updateDownload() { canvas.toBlob((blob) => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); downloadUrl = URL.createObjectURL(blob); download.href = downloadUrl; download.hidden = false; }); }
+function updateDownload() { canvas.toBlob((blob) => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); downloadUrl = URL.createObjectURL(blob); download.href = downloadUrl; skinSheetImage.src = downloadUrl; download.hidden = false; }); }
 function processFile(file) {
   if (!file || !file.type.startsWith('image/')) { setStatus('Choose a PNG, JPG, WEBP, or GIF image file.', 'error'); return; }
   if (sourceUrl) URL.revokeObjectURL(sourceUrl); sourceUrl = URL.createObjectURL(file); const image = new Image();
@@ -84,4 +84,4 @@ dropZone.addEventListener('drop', (e) => processFile(e.dataTransfer.files[0]));
 autoColors.addEventListener('change', () => colorGrid.classList.toggle('is-auto', autoColors.checked)); colorGrid.classList.add('is-auto');
 form.addEventListener('submit', (event) => { event.preventDefault(); if (!sourceImage) return; generateButton.disabled = true; setStatus('Forging your skin...', 'working'); requestAnimationFrame(() => { generateSkin(); updateDownload(); placeholder.hidden = true; resultContent.hidden = false; resetButton.hidden = false; generateButton.disabled = false; setStatus('Skin forged. Rotate your player, then download the PNG.'); }); });
 $('view-reset').addEventListener('click', () => viewer.resetView());
-resetButton.addEventListener('click', () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); if (downloadUrl) URL.revokeObjectURL(downloadUrl); sourceUrl = downloadUrl = null; sourceImage = null; input.value = ''; sourcePreview.hidden = true; sourcePreview.removeAttribute('src'); dropZone.classList.remove('has-image'); dropZone.querySelectorAll('strong, small, .drop-icon').forEach((node) => node.hidden = false); ctx.clearRect(0,0,64,64); viewer.updateSkin(); generateButton.disabled = true; placeholder.hidden = false; resultContent.hidden = true; download.hidden = true; resetButton.hidden = true; setStatus('Choose a portrait to begin.'); });
+resetButton.addEventListener('click', () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); if (downloadUrl) URL.revokeObjectURL(downloadUrl); sourceUrl = downloadUrl = null; sourceImage = null; input.value = ''; sourcePreview.hidden = true; sourcePreview.removeAttribute('src'); skinSheetImage.removeAttribute('src'); dropZone.classList.remove('has-image'); dropZone.querySelectorAll('strong, small, .drop-icon').forEach((node) => node.hidden = false); ctx.clearRect(0,0,64,64); viewer.updateSkin(); generateButton.disabled = true; placeholder.hidden = false; resultContent.hidden = true; download.hidden = true; resetButton.hidden = true; setStatus('Choose a portrait to begin.'); });
