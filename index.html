@@ -38,10 +38,19 @@
           <label class="drop-zone" id="drop-zone" for="image-input">
             <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
             <img id="source-preview" alt="Selected portrait preview" hidden />
-            <span class="drop-icon">+</span>
-            <strong>Drop an image here</strong>
-            <small>or choose a file · PNG, JPG, WEBP, GIF</small>
+            <span class="drop-icon upload-prompt">+</span>
+            <strong class="upload-prompt">Drop an image here</strong>
+            <small class="upload-prompt">or choose a file · PNG, JPG, WEBP, GIF</small>
           </label>
+          <div class="face-crop-editor" id="face-crop-editor" hidden>
+            <div><canvas id="face-crop-preview" width="160" height="160" aria-label="Face crop used for the Minecraft head"></canvas><span>FACE CROP</span></div>
+            <div class="crop-controls">
+              <label>Horizontal <input id="crop-x" type="range" min="0" max="100" value="50" /></label>
+              <label>Vertical <input id="crop-y" type="range" min="0" max="100" value="42" /></label>
+              <label>Zoom <input id="crop-zoom" type="range" min="150" max="500" value="220" /></label>
+              <small id="face-detection-status">Looking for a face...</small>
+            </div>
+          </div>
           <p class="privacy-note">Your image stays on this device. Skin Forge never sends it anywhere.</p>
         </div>
 
