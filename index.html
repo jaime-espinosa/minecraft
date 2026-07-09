@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e7c86b" />
+    <title>Skin Forge | Minecraft Skin Maker</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="masthead">
+        <a class="brand" href="#top" aria-label="Skin Forge home">SKIN<span>FORGE</span></a>
+        <p class="eyebrow">Portrait to player skin, entirely in your browser</p>
+        <div class="privacy-seal">NO UPLOADS<br />NO ACCOUNTS</div>
+      </header>
+
+      <section class="hero" id="top" aria-labelledby="page-title">
+        <div>
+          <p class="kicker">BLOCK BY BLOCK</p>
+          <h1 id="page-title">Forge a skin<br />from <em>your</em> world.</h1>
+          <p class="lede">Drop in a portrait. Tune the details. Leave with a Minecraft-ready skin and a player you can spin around.</p>
+        </div>
+        <div class="hero-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </section>
+
+      <section class="workbench" aria-label="Skin generator">
+        <div class="panel input-panel">
+          <div class="panel-heading"><span>01</span><h2>Choose your portrait</h2></div>
+          <label class="drop-zone" id="drop-zone" for="image-input">
+            <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+            <img id="source-preview" alt="Selected portrait preview" hidden />
+            <span class="drop-icon">+</span>
+            <strong>Drop an image here</strong>
+            <small>or choose a file · PNG, JPG, WEBP, GIF</small>
+          </label>
+          <p class="privacy-note">Your image stays on this device. Skin Forge never sends it anywhere.</p>
+        </div>
+
+        <form class="panel settings-panel" id="settings-form">
+          <div class="panel-heading"><span>02</span><h2>Shape the character</h2></div>
+          <fieldset>
+            <legend>Player model</legend>
+            <div class="segmented-control">
+              <input id="classic" name="model" type="radio" value="classic" checked />
+              <label for="classic">Classic <small>4px arms</small></label>
+              <input id="slim" name="model" type="radio" value="slim" />
+              <label for="slim">Slim <small>3px arms</small></label>
+            </div>
+          </fieldset>
+          <label class="switch-row" for="auto-colors"><input id="auto-colors" type="checkbox" checked /> <span>Pull colors from my image</span></label>
+          <div class="color-grid" id="color-grid">
+            <label>Skin <input id="skin-color" type="color" value="#c98e68" /></label>
+            <label>Hair <input id="hair-color" type="color" value="#422a1f" /></label>
+            <label>Shirt <input id="shirt-color" type="color" value="#376c80" /></label>
+            <label>Pants <input id="pants-color" type="color" value="#314659" /></label>
+            <label>Shoes <input id="shoe-color" type="color" value="#241e1c" /></label>
+          </div>
+          <div class="select-grid">
+            <label>Hair style <select id="hair-style"><option value="crop">Cropped</option><option value="sweep">Side sweep</option><option value="long">Long</option></select></label>
+            <label>Accessory <select id="accessory"><option value="none">None</option><option value="glasses">Glasses</option><option value="beard">Beard</option><option value="jacket">Jacket layer</option></select></label>
+          </div>
+          <button class="forge-button" id="generate-button" type="submit" disabled><span>Forge my skin</span><b>→</b></button>
+        </form>
+
+        <aside class="panel results-panel" aria-labelledby="result-title">
+          <div class="panel-heading"><span>03</span><h2 id="result-title">Your player</h2></div>
+          <div class="result-placeholder" id="result-placeholder"><span class="tiny-blocks" aria-hidden="true"></span><p>Your 64 × 64 skin will appear here.</p></div>
+          <div class="result-content" id="result-content" hidden>
+            <div class="skin-sheet-wrap"><canvas id="skin-canvas" width="64" height="64" aria-label="Generated Minecraft skin template"></canvas><span>ACTUAL PNG LAYOUT</span></div>
+            <div class="viewer-wrap"><div id="viewer" aria-label="Interactive three-dimensional player preview"></div><button class="view-reset" id="view-reset" type="button">Reset view</button></div>
+          </div>
+          <a class="download-button" id="download-button" download="minecraft-skin.png" hidden>Download skin <b>↓</b></a>
+          <button class="quiet-button" id="reset-button" type="button" hidden>Start another</button>
+        </aside>
+      </section>
+
+      <p class="status" id="status" role="status" aria-live="polite">Choose a portrait to begin.</p>
+      <footer><span>Skin Forge uses browser-side pixel crafting, not a generative AI service.</span><span>Made for the modern 64 × 64 Minecraft skin format.</span></footer>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
