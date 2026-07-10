@@ -7,7 +7,7 @@ Date: 2026-07-10
 Turn Skin Forge into a mobile-first, installable PWA with two top-level modes:
 
 1. **Solid** is a dependable, complete Minecraft avatar studio that works without photos, models, accounts, or network services.
-2. **Experimental** adds local natural-language commands, photo-derived ingredients, telemetry, research contribution, and an IP-gated Developer Workshop.
+2. **Experimental** adds local natural-language commands, photo-derived ingredients, telemetry, research contribution, and a password-gated Developer Workshop.
 
 The product must remain free to operate. Photos remain on-device unless a user explicitly enables Research Contribution. Hair always uses the Minecraft hat layer.
 
@@ -131,18 +131,23 @@ Image ingestion remains disabled until a hard free-storage ceiling and automatic
 
 Developer Workshop is a capability inside Experimental mode, not a third top-level mode.
 
-1. Access is allowed only from configured household public IP addresses or ranges.
-2. Everyone on the household connection may use it; there are no accounts, passkeys, or approval steps.
-3. A server-side schedule and kill switch control availability.
-4. Workshop commands use the same instruction field and constrained operation schema.
-5. Allowed operations cover design tokens, spacing, typography, component order, visibility, sizing, copy, and supported layouts.
-6. Arbitrary HTML, JavaScript, URLs, shell commands, workflow definitions, and repository instructions are rejected.
-7. The Worker repeats validation; client validation is not trusted.
-8. Valid changes publish immediately to a versioned Experimental configuration in Cloudflare KV or D1.
-9. Household devices see the preview configuration immediately.
-10. `publish experimental` promotes the current household preview to all Experimental users.
-11. `undo`, `rollback`, and `restore version N` provide immediate recovery.
-12. Solid mode never reads Workshop configuration.
+1. Access requires one shared Workshop password; there are no accounts, passkeys, recovery flow, or approval steps.
+2. The repository, browser bundle, browser storage, telemetry, and logs never contain the password or its plaintext equivalent.
+3. Cloudflare stores only a unique salt and PBKDF2-SHA-256 password verifier as encrypted Worker secrets.
+4. The browser sends the password only over HTTPS to the Worker login endpoint. The Worker must exclude the request body from logs and discard the plaintext immediately after verification.
+5. Successful login returns a random, signed, revocable session in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie with a 12-hour maximum lifetime.
+6. Failed logins use rate limits and increasing retry delays. Repeated failures emit a sanitized security alarm without recording attempted passwords.
+7. Rotating the verifier or activating the kill switch invalidates all Workshop sessions.
+8. A server-side schedule and kill switch control Workshop availability.
+9. Workshop commands use the same instruction field and constrained operation schema.
+10. Allowed operations cover design tokens, spacing, typography, component order, visibility, sizing, copy, and supported layouts.
+11. Arbitrary HTML, JavaScript, URLs, shell commands, workflow definitions, and repository instructions are rejected.
+12. The Worker repeats validation; client validation is not trusted.
+13. Valid changes publish immediately to a versioned Experimental configuration in Cloudflare KV or D1.
+14. Authenticated Workshop devices see the preview configuration immediately.
+15. `publish experimental` promotes the current Workshop preview to all Experimental users.
+16. `undo`, `rollback`, and `restore version N` provide immediate recovery.
+17. Solid mode never reads Workshop configuration.
 
 Workshop deploys configuration, not executable code. This provides immediate visible changes without turning untrusted text into JavaScript or repository access.
 
@@ -200,7 +205,7 @@ Browsers never receive a GitHub credential and never append directly to reposito
 4. Unsupported and malicious commands cannot execute code or alter Solid mode.
 5. Prompt telemetry contains no image data and applies seven-day raw retention.
 6. Quarantined content cannot reach automated TODO editing or LLM analysis.
-7. Workshop access respects configured IPs, schedule, and kill switch.
+7. Workshop access requires a valid password-backed session and respects the schedule and kill switch.
 8. Workshop preview, public Experimental publish, undo, and version restore work without Git commits.
 9. Cloud service exhaustion disables remote features without affecting generation or export.
 10. Browser automation covers preset-only generation, Classic/Slim output, outer layers, download, mode switching, instruction parsing, invalid configuration, rollback, WebGL failure, and offline operation.
