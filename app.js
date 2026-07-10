@@ -61,7 +61,11 @@ function paintFace(palette) {
   const hair = palette.hair, feature = '#24201e', smile = shade(hair, .65);
   fill(9, 10, 2, 1, hair); fill(13, 10, 2, 1, hair);
   fill(9, 11, 1, 1, feature); fill(14, 11, 1, 1, feature);
-  fill(11, 12, 2, 1, shade(palette.skin, .62)); fill(10, 14, 4, 1, smile);
+  fill(11, 12, 2, 1, shade(palette.skin, .62));
+  const expression = $('expression').value;
+  if (expression === 'smile') fill(10, 14, 4, 1, smile);
+  if (expression === 'grin') { fill(10, 13, 4, 1, '#f6ead5'); fill(10, 14, 4, 1, smile); }
+  if (expression === 'neutral') fill(11, 14, 2, 1, smile);
   fill(8, 15, 8, 1, shade(palette.shirt, .62));
   const accessory = $('accessory').value;
   if (accessory === 'glasses') { fill(8, 11, 8, 1, '#26272a'); fill(9, 12, 2, 1, '#b8d5d0'); fill(13, 12, 2, 1, '#b8d5d0'); }
@@ -88,15 +92,33 @@ function scoreReference(palette) {
   for (let index = 0; index < 24; index += 1) { weighted += colorScore(hairPixels.slice(index * 4, index * 4 + 3), hairTarget) * 3; total += 3; }
   return weighted / total;
 }
-function paintHairOverlay(color) {
+function paintHairOverlay(palette) {
+  const color = palette.hair;
   const style = $('hair-style').value;
+  const volume = Number($('curl-volume').value);
   const hat = box(32, 0, 8, 8, 8);
-  fill(hat.front[0], hat.front[1], 8, style === 'long' ? 3 : 2, color);
-  fill(hat.right[0], hat.right[1], 4, style === 'long' ? 7 : 5, shade(color, .76));
-  fill(hat.left[0], hat.left[1], 4, style === 'long' ? 7 : 5, shade(color, .82));
+  const height = style === 'long' || style === 'curl' ? 3 : 2;
+  fill(hat.front[0], hat.front[1], 8, height, color);
+  fill(hat.right[0], hat.right[1], 4, style === 'long' || style === 'curl' ? 7 : 5, shade(color, .76));
+  fill(hat.left[0], hat.left[1], 4, style === 'long' || style === 'curl' ? 7 : 5, shade(color, .82));
   fill(hat.top[0], hat.top[1], 8, 8, shade(color, 1.06));
+  if (palette.tiny) {
+    const pixels = palette.tiny.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, 32, 32).data;
+    const hairLightness = rgbFromHex(color).reduce((sum, channel) => sum + channel, 0) / 3;
+    for (let y = 2; y < 7; y += 1) for (let x = 0; x < 8; x += 1) {
+      if (x > 1 && x < 6 && y > 3) continue;
+      const offset = ((y * 4 + 2) * 32 + (x * 4 + 2)) * 4;
+      const lightness = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
+      if (lightness < hairLightness * 1.25) fill(hat.front[0] + x, hat.front[1] + y, 1, 1, x % 2 ? shade(color, .82) : color);
+    }
+  }
   if (style === 'sweep') fill(hat.front[0] + 4, hat.front[1] + 1, 4, 1, color);
   if (style === 'long') { fill(hat.front[0] + 7, hat.front[1] + 2, 1, 6, color); fill(hat.back[0], hat.back[1], 8, 8, shade(color, .72)); }
+  if (style === 'curl') {
+    const curls = [[0,2],[1,3],[0,4],[7,2],[6,3],[7,4],[1,1],[6,1],[2,0],[5,0],[0,5],[7,5],[1,4],[6,4]];
+    curls.slice(0, volume === 1 ? 8 : volume === 2 ? 12 : curls.length).forEach(([x, y]) => fill(hat.front[0] + x, hat.front[1] + y, 1, 1, x % 2 ? shade(color, .72) : shade(color, 1.12)));
+    fill(hat.back[0], hat.back[1], 8, 8, shade(color, .7));
+  }
 }
 function paintOuterLayers(colors) {
   const armWidth = $('slim').checked ? 3 : 4;
@@ -116,7 +138,7 @@ function generateSkin() {
   paintBox(box(16,16,8,12,4), colors.shirt); paintBox(box(0,16,4,12,4), colors.pants); paintBox(box(16,48,4,12,4), colors.pants);
   paintBox(box(40,16,$('slim').checked ? 3 : 4,12,4), colors.shirt); paintBox(box(32,48,$('slim').checked ? 3 : 4,12,4), colors.shirt);
   fill(4, 29, 4, 3, colors.shoes); fill(20, 61, 4, 3, colors.shoes);
-  paintOuterLayers(colors); paintFace(colors); paintHairOverlay(colors.hair);
+  paintOuterLayers(colors); paintFace(colors); paintHairOverlay(colors);
   if ($('accessory').value === 'jacket') { fill(20, 36, 8, 12, shade(colors.shirt, .83)); fill(20, 36, 8, 1, shade(colors.shirt, 1.15)); }
   const score = scoreReference(colors); fidelityValue.value = score.toFixed(2); fidelityValue.textContent = score.toFixed(2); fidelityScore.dataset.score = score.toFixed(4); fidelityScore.hidden = false;
   viewer.setSlim($('slim').checked); viewer.updateSkin();
