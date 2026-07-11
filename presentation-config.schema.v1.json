@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "My Avatars presentation configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "layoutVariant", "tokens", "labels", "order", "features"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "layoutVariant": { "enum": ["stage-left", "stage-right", "stage-top"] },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "panel", "action", "accent"],
+      "properties": {
+        "surface": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+        "panel": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+        "action": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+        "accent": { "type": "string", "pattern": "^#[0-9a-f]{6}$" }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brand", "build", "library", "export"],
+      "properties": {
+        "brand": { "type": "string", "minLength": 1 },
+        "build": { "type": "string", "minLength": 1 },
+        "library": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "order": { "const": ["build", "library", "export"] },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacy", "deletion", "validation", "exports", "accessibility"],
+      "properties": {
+        "privacy": { "const": true },
+        "deletion": { "const": true },
+        "validation": { "const": true },
+        "exports": { "const": true },
+        "accessibility": { "const": true }
+      }
+    }
+  }
+}

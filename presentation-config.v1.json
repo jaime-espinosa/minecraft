@@ -1,0 +1,1 @@
+{"schemaVersion":1,"layoutVariant":"stage-left","tokens":{"surface":"#11152f","panel":"#24204d","action":"#74f0c6","accent":"#63b7ff"},"labels":{"brand":"My Avatars","build":"Build","library":"Library","export":"Export"},"order":["build","library","export"],"features":{"privacy":true,"deletion":true,"validation":true,"exports":true,"accessibility":true}}
