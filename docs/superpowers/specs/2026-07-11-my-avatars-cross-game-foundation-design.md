@@ -264,6 +264,7 @@ type AppearanceSnapshotV1 = {
   schemaVersion: 1;
   recipeId: string;
   recipeRevision: number;
+  identityRevision: number;
   semanticAppearance: SemanticAppearanceV1;
   sourceDigest: string;
 };

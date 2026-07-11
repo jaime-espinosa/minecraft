@@ -35,6 +35,7 @@ export async function createAppearanceSnapshot(frame) {
   };
   const snapshot = {
     schemaVersion: 1,
+    identityRevision: frame.identity.revision,
     recipeId: frame.recipe.id,
     recipeRevision: frame.recipe.revision,
     semanticAppearance,

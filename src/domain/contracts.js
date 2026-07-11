@@ -244,8 +244,9 @@ export function validateSemanticAppearanceV1(value, path = '$') {
 }
 
 export function validateAppearanceSnapshotV1(value, path = '$') {
-  exactKeys(value, ['schemaVersion', 'recipeId', 'recipeRevision', 'semanticAppearance', 'sourceDigest'], [], path);
+  exactKeys(value, ['schemaVersion', 'identityRevision', 'recipeId', 'recipeRevision', 'semanticAppearance', 'sourceDigest'], [], path);
   enumValue(value.schemaVersion, [1], `${path}.schemaVersion`);
+  integer(value.identityRevision, `${path}.identityRevision`, 1);
   string(value.recipeId, `${path}.recipeId`);
   integer(value.recipeRevision, `${path}.recipeRevision`, 1);
   validateSemanticAppearanceV1(value.semanticAppearance, `${path}.semanticAppearance`);

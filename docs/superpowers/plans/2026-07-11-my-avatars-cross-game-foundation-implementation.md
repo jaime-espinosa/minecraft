@@ -87,7 +87,7 @@ Dependency direction is fixed: presentation and routes call `StudioSession`; the
 **Files:** create `src/avatar-kernel/projection.js`, `src/avatar-kernel/kernel.js`, `tests/unit/avatar-kernel.test.js`, `tests/unit/snapshot.test.js`.
 
 - [ ] Write failing tests for `createAvatarKernel().start()`, `transact({ frame, baseRevision, operations })`, and `snapshot(frame)`. Cover default start, invalid seed, one revision increment per successful transaction, stale base revision, closed operation allowlist, input immutability, and selected proposal field application.
-- [ ] Assert snapshots contain `{ schemaVersion, recipeId, recipeRevision, semanticAppearance, sourceDigest }`, use accepted identity plus recipe style, are deeply frozen, validate canonically, and contain no provenance, photo IDs, blob keys, focus regions, analyzer versions, or biometric data.
+- [ ] Assert snapshots contain `{ schemaVersion, recipeId, recipeRevision, identityRevision, semanticAppearance, sourceDigest }`, use accepted identity plus recipe style, are deeply frozen, validate canonically, and contain no provenance, photo IDs, blob keys, focus regions, analyzer versions, or biometric data.
 - [ ] Run `node --test tests/unit/avatar-kernel.test.js tests/unit/snapshot.test.js`; expect missing-module failures.
 - [ ] Implement a stateless kernel. `start(seed)` validates either the complete seed or the pinned defaults. `transact` validates the supplied frame before checking `baseRevision`, applies operations to clones, increments affected revisions once, validates the result, and returns `err` without mutation on any failure. `snapshot` projects only semantic appearance and hashes its canonical source record.
 - [ ] Run the focused tests and `npm test`; expect pass.
@@ -213,4 +213,3 @@ Task 3 + Task 4 + Task 7 -> Task 8 PWA/deployment -> Task 9 integration
 - Use Terra medium/high for Tasks 4, 8, integration, and debugging across boundaries.
 - Use Sol high/xhigh only for contract amendments, storage/privacy review, and final audit.
 - Any worker stops if it needs a new enum, field, privacy behavior, migration protocol, Roblox coordinate, runtime dependency, or cross-file API not declared here or in the design.
-

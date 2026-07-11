@@ -152,6 +152,7 @@ test('validates closed snapshot, proposal, operation, and frame contracts', () =
   ];
   const snapshot = {
     schemaVersion: 1,
+    identityRevision: 1,
     recipeId: DEFAULT_RECIPE.id,
     recipeRevision: 1,
     semanticAppearance: semanticAppearance(),
@@ -169,6 +170,10 @@ test('validates closed snapshot, proposal, operation, and frame contracts', () =
   const frame = { identity: DEFAULT_IDENTITY, recipe: DEFAULT_RECIPE };
 
   assert.equal(validateAppearanceSnapshotV1(snapshot), snapshot);
+  assert.throws(() => validateAppearanceSnapshotV1({ ...snapshot, identityRevision: 0 }), /identityRevision/i);
+  const { identityRevision: omittedIdentityRevision, ...missingIdentityRevision } = snapshot;
+  assert.equal(omittedIdentityRevision, 1);
+  assert.throws(() => validateAppearanceSnapshotV1(missingIdentityRevision), /identityRevision/i);
   assert.equal(validateProposedIdentityChangeV1(proposal), proposal);
   assert.equal(validateIdentityOperation(identityOperation), identityOperation);
   avatarOperations.forEach((operation) => assert.equal(validateAvatarOperation(operation), operation));
