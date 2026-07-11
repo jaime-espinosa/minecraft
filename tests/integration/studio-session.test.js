@@ -4,6 +4,21 @@ import assert from 'node:assert/strict';
 import { createAvatarKernel } from '../../src/avatar-kernel/kernel.js';
 import { createMinecraftCompiler } from '../../src/compilers/minecraft/compiler.js';
 import { createStudioSession } from '../../src/studio-session/studio-session.js';
+import { createMemoryLibrary } from '../../src/studio-session/memory-library.js';
+
+test('update safety tracks successful drafts and durable-library migration state',async()=>{
+  const kernel=createAvatarKernel(), initial=kernel.start().value, memory=createMemoryLibrary(initial.recipe);
+  const library={list:()=>memory.list(),active:()=>memory.active(),save:(recipe)=>memory.save(recipe),select:(id)=>memory.select(id),delete:(id)=>memory.delete(id),reset:(recipe)=>memory.reset(recipe),hasMigration:()=>true};
+  const session=createStudioSession({kernel,minecraftCompiler:createMinecraftCompiler(),library});
+  assert.deepEqual(session.getUpdateSafety(),{hasUnsavedDraft:false,hasMigration:true});
+  await session.dispatch({type:'edit',baseRevision:1,operations:[{op:'set-expression',value:'grin'}]});
+  assert.deepEqual(session.getUpdateSafety(),{hasUnsavedDraft:true,hasMigration:true});
+  const failed=await session.dispatch({type:'save-look',label:'<bad>'});assert.equal(failed.ok,false);assert.equal(session.getUpdateSafety().hasUnsavedDraft,true);
+  await session.dispatch({type:'save-look',label:'Safe'});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
+  await session.dispatch({type:'edit',baseRevision:1,minecraftProfile:{geometry:'slim',outerLayers:true}});assert.equal(session.getUpdateSafety().hasUnsavedDraft,true);
+  await session.dispatch({type:'select-look',id:initial.recipe.id});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
+  await session.dispatch({type:'edit',baseRevision:1,operations:[{op:'set-expression',value:'neutral'}]});await session.dispatch({type:'confirm-reset-person'});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
+});
 
 test('starts and edits without photos, storage, network, or viewer', async () => {
   const session = createStudioSession({ kernel: createAvatarKernel(), minecraftCompiler: createMinecraftCompiler() });

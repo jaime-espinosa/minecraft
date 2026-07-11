@@ -1,8 +1,15 @@
 # Testing and Release Gates
 
-## Current Manual Baseline
+## Local Automated and Manual Baseline
 
-There is no committed automated test suite. Serve the repository locally:
+Run the committed Node test suite first:
+
+```bash
+npm ci
+npm test
+```
+
+Then serve the repository locally for browser checks:
 
 ```bash
 python3 -m http.server 8000
@@ -27,6 +34,7 @@ The local proxy additions support upload actions and Canvas extraction. Do not p
 7. **Workshop tests:** bootstrap consumption, password verification, cookies, CSRF/origin checks, rate limits, conflicts, preview, publish, restore, audit, and kill switch.
 8. **Privacy tests:** payload allowlists, PII rejection, injection quarantine, seven-day deletion, quota cutoff, and proof that photos/canvas/skins are absent from requests.
 9. **PWA tests:** installability, self-hosted critical assets, offline Solid startup, update behavior, and cache recovery.
+10. **Deployment tests:** exact public allowlist staging, `/my-avatars/` scope/start URL, old-path hash mapping with query removal, and proof that tests, private docs, personal images, screenshots, generated artifacts, and repository-root contents are absent.
 
 ## Browser Matrix
 

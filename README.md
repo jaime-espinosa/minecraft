@@ -1,14 +1,13 @@
-# Skin Forge
+# My Avatars
 
-Skin Forge is a privacy-first, browser-based studio that turns a person's visual traits into a playable modern Minecraft skin. The current production application is a static HTML/CSS/JavaScript site hosted on GitHub Pages. Image processing and PNG generation happen in the browser.
+My Avatars is a privacy-first, browser-based studio for building one block avatar and exporting local Minecraft and Roblox Classic artifacts. The application is a static HTML/CSS/JavaScript PWA; editing, validation, and generation remain on the device.
 
-- Live site: <https://jaime-espinosa.github.io/minecraft/>
-- Repository: <https://github.com/jaime-espinosa/minecraft>
-- Current production baseline: `ded8b5299eb8216ae1b141199a561c8ae36ae27f`
+- Planned Pages base: `/my-avatars/`
+- Remote rename and deployment require separate authorization; see [the deployment runbook](deploy/rename-and-pages-runbook.md).
 
 ## Current Product
 
-The shipped site accepts a portrait, derives colors and facial cues, composes a transparent `64 x 64` modern Minecraft skin, shows the texture sheet and a rotatable Three.js model, and downloads the PNG. It includes crop controls, Classic/Slim arms, automatic or manual colors, hair styles, curl volume, expressions, and accessories. Hair is always drawn on the Minecraft hat/outer-head layer.
+The dependable studio starts without a photo, keeps source material local, composes exact platform artifacts from semantic avatar choices, and treats the 3D Minecraft viewer as an optional enhancement. The checked-in service worker caches only an exact public shell allowlist and never caches photos or generated downloads.
 
 The current generator is useful but not a proven likeness system. Its former `0.9327` score was self-referential and must not be interpreted as perceptual similarity.
 

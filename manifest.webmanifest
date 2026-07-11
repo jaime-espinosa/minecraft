@@ -1,0 +1,19 @@
+{
+  "name": "My Avatars",
+  "short_name": "My Avatars",
+  "description": "Build one private block avatar for Minecraft and Roblox Classic.",
+  "id": "/my-avatars/",
+  "start_url": "/my-avatars/#/studio",
+  "scope": "/my-avatars/",
+  "display": "standalone",
+  "background_color": "#11152f",
+  "theme_color": "#11152f",
+  "icons": [
+    {
+      "src": "/my-avatars/icons/my-avatars.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

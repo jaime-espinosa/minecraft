@@ -1,5 +1,15 @@
-import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+let THREE;
+let OrbitControls;
+
+async function loadViewerDependencies(loader) {
+  if (THREE && OrbitControls) return;
+  if (typeof loader !== 'function') {
+    throw new Error('Optional 3D preview unavailable: self-hosted Three.js viewer dependencies are not installed.');
+  }
+  const dependencies = await loader();
+  THREE = dependencies.THREE;
+  OrbitControls = dependencies.OrbitControls;
+}
 
 const U = (x, y, w, h) => ({ x, y, w, h });
 const AREAS = {
@@ -38,7 +48,8 @@ function playerPart(name, width, height, depth, canvas) {
   return mesh;
 }
 
-export function createSkinViewer(container, skinCanvas) {
+export async function createMinecraftAvatarViewer(container, minecraftTexture, { loadDependencies, requestFrame = globalThis.requestAnimationFrame, cancelFrame = globalThis.cancelAnimationFrame } = {}) {
+  await loadViewerDependencies(loadDependencies);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -53,6 +64,8 @@ export function createSkinViewer(container, skinCanvas) {
   floor.rotation.x = -Math.PI / 2; floor.position.y = -1.42; scene.add(floor);
   const player = new THREE.Group(); scene.add(player);
   let slim = false;
+  let disposed = false;
+  let frameHandle = null;
 
   function disposePlayer() {
     player.traverse((child) => {
@@ -65,28 +78,34 @@ export function createSkinViewer(container, skinCanvas) {
 
   function buildPlayer() {
     disposePlayer();
-    const head = playerPart('head', .8, .8, .8, skinCanvas); head.position.y = 1.55; player.add(head);
-    const hat = playerPart('hat', .84, .84, .84, skinCanvas); hat.position.copy(head.position); player.add(hat);
-    const body = playerPart('body', .8, 1.2, .4, skinCanvas); body.position.y = .55; player.add(body);
-    const jacket = playerPart('jacket', .84, 1.24, .44, skinCanvas); jacket.position.copy(body.position); player.add(jacket);
+    const head = playerPart('head', .8, .8, .8, minecraftTexture); head.position.y = 1.55; player.add(head);
+    const hat = playerPart('hat', .84, .84, .84, minecraftTexture); hat.position.copy(head.position); player.add(hat);
+    const body = playerPart('body', .8, 1.2, .4, minecraftTexture); body.position.y = .55; player.add(body);
+    const jacket = playerPart('jacket', .84, 1.24, .44, minecraftTexture); jacket.position.copy(body.position); player.add(jacket);
     const armWidth = slim ? .3 : .4;
-    const rightArm = playerPart(slim ? 'rightArmSlim' : 'rightArm', armWidth, 1.2, .4, skinCanvas); rightArm.position.set(-.4 - armWidth / 2, .55, 0); player.add(rightArm);
-    const leftArm = playerPart(slim ? 'leftArmSlim' : 'leftArm', armWidth, 1.2, .4, skinCanvas); leftArm.position.set(.4 + armWidth / 2, .55, 0); player.add(leftArm);
-    const rightSleeve = playerPart(slim ? 'rightArmOverlaySlim' : 'rightArmOverlay', armWidth + .04, 1.24, .44, skinCanvas); rightSleeve.position.copy(rightArm.position); player.add(rightSleeve);
-    const leftSleeve = playerPart(slim ? 'leftArmOverlaySlim' : 'leftArmOverlay', armWidth + .04, 1.24, .44, skinCanvas); leftSleeve.position.copy(leftArm.position); player.add(leftSleeve);
-    const rightLeg = playerPart('rightLeg', .4, 1.2, .4, skinCanvas); rightLeg.position.set(-.2, -.65, 0); player.add(rightLeg);
-    const leftLeg = playerPart('leftLeg', .4, 1.2, .4, skinCanvas); leftLeg.position.set(.2, -.65, 0); player.add(leftLeg);
-    const rightPants = playerPart('rightLegOverlay', .44, 1.24, .44, skinCanvas); rightPants.position.copy(rightLeg.position); player.add(rightPants);
-    const leftPants = playerPart('leftLegOverlay', .44, 1.24, .44, skinCanvas); leftPants.position.copy(leftLeg.position); player.add(leftPants);
+    const rightArm = playerPart(slim ? 'rightArmSlim' : 'rightArm', armWidth, 1.2, .4, minecraftTexture); rightArm.position.set(-.4 - armWidth / 2, .55, 0); player.add(rightArm);
+    const leftArm = playerPart(slim ? 'leftArmSlim' : 'leftArm', armWidth, 1.2, .4, minecraftTexture); leftArm.position.set(.4 + armWidth / 2, .55, 0); player.add(leftArm);
+    const rightSleeve = playerPart(slim ? 'rightArmOverlaySlim' : 'rightArmOverlay', armWidth + .04, 1.24, .44, minecraftTexture); rightSleeve.position.copy(rightArm.position); player.add(rightSleeve);
+    const leftSleeve = playerPart(slim ? 'leftArmOverlaySlim' : 'leftArmOverlay', armWidth + .04, 1.24, .44, minecraftTexture); leftSleeve.position.copy(leftArm.position); player.add(leftSleeve);
+    const rightLeg = playerPart('rightLeg', .4, 1.2, .4, minecraftTexture); rightLeg.position.set(-.2, -.65, 0); player.add(rightLeg);
+    const leftLeg = playerPart('leftLeg', .4, 1.2, .4, minecraftTexture); leftLeg.position.set(.2, -.65, 0); player.add(leftLeg);
+    const rightPants = playerPart('rightLegOverlay', .44, 1.24, .44, minecraftTexture); rightPants.position.copy(rightLeg.position); player.add(rightPants);
+    const leftPants = playerPart('leftLegOverlay', .44, 1.24, .44, minecraftTexture); leftPants.position.copy(leftLeg.position); player.add(leftPants);
   }
   function resize() { const { width, height } = container.getBoundingClientRect(); renderer.setSize(width || 260, height || 280, false); camera.aspect = (width || 260) / (height || 280); camera.updateProjectionMatrix(); }
   function resetView() { camera.position.set(3.2, 2.2, 4.3); controls.target.set(0, .3, 0); controls.update(); }
-  function render() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(render); }
+  function render() { if (disposed) return; controls.update(); renderer.render(scene, camera); frameHandle = requestFrame(render); }
   const observer = new ResizeObserver(resize); observer.observe(container); buildPlayer(); resize(); resetView(); render();
   return {
-    updateSkin() { player.traverse((child) => child.material?.forEach?.((material) => { material.map.needsUpdate = true; })); },
+    updateMinecraftTexture(nextTexture) {
+      minecraftTexture = nextTexture;
+      player.traverse((child) => child.material?.forEach?.((material) => {
+        material.map.image = minecraftTexture;
+        material.map.needsUpdate = true;
+      }));
+    },
     setSlim(nextSlim) { if (slim !== nextSlim) { slim = nextSlim; buildPlayer(); } },
     resetView,
-    dispose() { observer.disconnect(); disposePlayer(); controls.dispose(); renderer.dispose(); container.replaceChildren(); }
+    dispose() { if (disposed) return; disposed = true; if (frameHandle !== null && typeof cancelFrame === 'function') cancelFrame(frameHandle); observer.disconnect(); disposePlayer(); controls.dispose(); renderer.dispose(); container.replaceChildren(); }
   };
 }

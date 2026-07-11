@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#11152f" />
     <title>My Avatars · Build your block adventure</title>
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -34,6 +35,8 @@
           <div class="avatar-stage" id="result-content">
             <canvas id="minecraft-texture-canvas" width="64" height="64" aria-label="Exact Minecraft texture preview"></canvas>
             <img id="minecraft-texture-image" alt="Exact generated 64 by 64 Minecraft texture" hidden />
+            <div id="minecraft-avatar-viewer" aria-label="Optional interactive Minecraft avatar preview" hidden></div>
+            <p id="minecraft-viewer-notice" role="status" aria-live="polite" hidden></p>
             <div class="avatar-silhouette" aria-hidden="true"><i></i><b></b><span></span></div>
             <p id="active-look-label">Avatar 1</p>
           </div>
@@ -77,6 +80,10 @@
       </section>
 
       <p id="status" class="status" role="status" aria-live="polite">Your avatar is ready. No photo is required.</p>
+      <p id="pwa-update-notice" class="status" role="status" aria-live="polite" hidden>
+        <span id="pwa-update-message">An offline update is ready.</span>
+        <button id="reload-update" type="button">Reload</button>
+      </p>
       <p id="route-notice" class="sr-only" role="status" aria-live="polite"></p>
     </main>
 

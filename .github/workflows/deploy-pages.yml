@@ -1,8 +1,6 @@
 name: Deploy static site to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,9 +20,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test
+        run: npm test
+      - name: Stage exact public allowlist
+        id: stage
+        shell: bash
+        run: |
+          stage_path="$(mktemp -d)"
+          bash deploy/stage-pages.sh "$stage_path"
+          echo "path=$stage_path" >> "$GITHUB_OUTPUT"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ${{ steps.stage.outputs.path }}
       - id: deployment
         uses: actions/deploy-pages@v4

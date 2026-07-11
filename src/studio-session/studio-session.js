@@ -11,12 +11,13 @@ export const STUDIO_ACTIONS = Object.freeze([
   'download', 'reload-update', 'dismiss-fault',
 ]);
 
-export function createStudioSession({ kernel, minecraftCompiler, robloxClassicCompiler = null, urls } = {}) {
+export function createStudioSession({ kernel, library: injectedLibrary = null, minecraftCompiler, robloxClassicCompiler = null, urls } = {}) {
   if (!kernel) throw new TypeError('StudioSession requires an avatar kernel');
   const fallbackUrls = (() => { let next = 0; return { createObjectURL: () => `memory:${++next}`, revokeObjectURL() {} }; })();
   const urlApi = urls ?? fallbackUrls;
   let frame = kernel.start().value;
-  const library = createMemoryLibrary(frame.recipe);
+  const library = injectedLibrary ?? createMemoryLibrary(frame.recipe);
+  let unsavedDraft = false;
   let route = '#/studio';
   let announcement = 'Your avatar is ready. No photo is required.';
   let fault = null;
@@ -90,6 +91,7 @@ export function createStudioSession({ kernel, minecraftCompiler, robloxClassicCo
 
   return Object.freeze({
     getViewModel() { return view(); },
+    getUpdateSafety() { return Object.freeze({ hasUnsavedDraft: unsavedDraft, hasMigration: library.hasMigration?.() === true }); },
     subscribe(listener) { listeners.add(listener); listener(view()); return () => listeners.delete(listener); },
     async dispatch(action) {
       if (disposed) return err({ kind: 'disposed', message: 'Studio session is closed.' });
@@ -107,11 +109,11 @@ export function createStudioSession({ kernel, minecraftCompiler, robloxClassicCo
           seed.recipe.revision += 1;
           const started = kernel.start(seed);
           if (!started.ok) return setFault(started.fault);
-          invalidateOutputs(); frame = started.value; announcement = 'Minecraft profile updated.'; emit(); return ok(frame);
+          invalidateOutputs(); frame = started.value; unsavedDraft = true; announcement = 'Minecraft profile updated.'; emit(); return ok(frame);
         }
         const result = kernel.transact({ frame, baseRevision: action.baseRevision, operations: action.operations });
         if (!result.ok) return setFault(result.fault);
-        invalidateOutputs(); frame = result.value; announcement = 'Avatar updated.'; emit(); return result;
+        invalidateOutputs(); frame = result.value; unsavedDraft = true; announcement = 'Avatar updated.'; emit(); return result;
       }
       if (action.type === 'save-look') {
         const defaultLabel = `Avatar ${nextRecipe}`;
@@ -123,13 +125,13 @@ export function createStudioSession({ kernel, minecraftCompiler, robloxClassicCo
         recipe.id = `avatar-${nextRecipe}`; recipe.localLabel = label.trim(); recipe.revision = 1;
         const started = kernel.start({ identity: frame.identity, recipe });
         if (!started.ok) return setFault({ kind: 'invalid-action', message: started.fault.message });
-        invalidateOutputs(); library.save(recipe); frame = started.value; nextRecipe += 1;
+        invalidateOutputs(); library.save(recipe); frame = started.value; nextRecipe += 1; unsavedDraft = false;
         announcement = `Saved ${recipe.localLabel}.`; emit(); return ok(recipe);
       }
       if (action.type === 'select-look') {
         if (!library.select(action.id)) return setFault({ kind: 'look-not-found', message: 'That saved look was not found.' });
         const recipe = library.active(); recipe.identityRevision = frame.identity.revision;
-        invalidateOutputs(); frame = kernel.start({ identity: frame.identity, recipe }).value; announcement = `Selected ${recipe.localLabel}.`; emit(); return ok(recipe);
+        invalidateOutputs(); frame = kernel.start({ identity: frame.identity, recipe }).value; unsavedDraft = false; announcement = `Selected ${recipe.localLabel}.`; emit(); return ok(recipe);
       }
       if (action.type === 'delete-look') {
         if (!library.delete(action.id)) return setFault({ kind: 'delete-rejected', message: 'Keep at least one saved look.' });
@@ -140,7 +142,7 @@ export function createStudioSession({ kernel, minecraftCompiler, robloxClassicCo
       if (action.type === 'confirm-reset-person') {
         const started = kernel.start();
         if (!started.ok) return setFault(started.fault);
-        invalidateOutputs(); frame = started.value; library.reset(frame.recipe); nextRecipe = 2;
+        invalidateOutputs(); frame = started.value; library.reset(frame.recipe); nextRecipe = 2; unsavedDraft = false;
         announcement = 'Started fresh for a new person with Avatar 1.'; emit(); return ok(frame);
       }
       if (action.type === 'compile-minecraft') return compile(minecraftCompiler, 'Minecraft', 'minecraft');

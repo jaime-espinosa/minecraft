@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting to My Avatars</title>
+  </head>
+  <body>
+    <main><h1>My Avatars</h1><p>Redirecting to the avatar studio…</p></main>
+    <script>
+      const routes = Object.freeze({
+        '#/solid': '#/studio',
+        '#/solid/library': '#/library',
+        '#/experimental': '#/experimental/capture'
+      });
+      location.replace(`/my-avatars/${routes[location.hash] || '#/studio'}`);
+    </script>
+  </body>
+</html>

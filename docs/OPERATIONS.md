@@ -12,7 +12,7 @@ The public editor must not depend on Cloudflare. Backend failure, quota exhausti
 
 ## Environments and Deployment
 
-The current production site deploys `main` through `.github/workflows/deploy-pages.yml`. The workspace `.git` has historically been unusable/read-only, so publishing used `/tmp/minecraft-skin-forge-publish`. Before any future release, establish which checkout is authoritative and compare its base commit with GitHub.
+The checked-in `.github/workflows/deploy-pages.yml` is manual-only and does not deploy on pushes to `main`. The workspace `.git` has historically been unusable/read-only, so prior publishing used `/tmp/minecraft-skin-forge-publish`; that history is not current deployment authorization. Before any future release, obtain explicit authorization, establish which checkout is authoritative, and compare its base commit with GitHub.
 
 Deploy public assets and Worker changes separately. Workshop configuration publishing is not source deployment: it can publish only schema-validated data. Source changes continue through normal review and GitHub deployment.
 
@@ -52,6 +52,10 @@ Quarantine count, rejected payloads, rate-limit events, quota state, publish fai
 ## PWA Installation
 
 Installation is one per device/browser profile. Updates arrive from the website through the service worker; users do not reinstall for each release.
+
+The public worker is scoped to `/my-avatars/` and caches only `deploy/pages-allowlist.txt`. An update remains waiting until the user chooses **Reload** with no unsaved draft or migration. A failed update retains the previous complete shell. Service-worker activation must never open, migrate, or delete IndexedDB.
+
+The checked-in Pages workflow is manual-only. Running it, changing repository or Pages settings, restoring an automatic `main` deployment trigger, or publishing the `/my-avatars/` cutover requires separate explicit authorization.
 
 ### iPhone or iPad
 

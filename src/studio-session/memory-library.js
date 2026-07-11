@@ -16,6 +16,7 @@ export function createMemoryLibrary(initialRecipe) {
       if (activeId === id) activeId = recipes[0].id;
       return true;
     },
+    hasMigration() { return false; },
     reset(recipe) { recipes.splice(0, recipes.length, clone(recipe)); activeId = recipe.id; return clone(recipe); },
   });
 }
