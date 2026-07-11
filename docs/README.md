@@ -5,20 +5,22 @@ This index separates final decisions from historical exploration. If documents c
 ## Authority Order
 
 1. [FINAL_SOLUTION.md](FINAL_SOLUTION.md) is the normative product and architecture specification.
-2. [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md) controls collection, retention, child safety, and prompt handling.
-3. [OPERATIONS.md](OPERATIONS.md) controls deployment, quotas, Workshop access, recovery, and monitoring.
-4. [TESTING_AND_RELEASE.md](TESTING_AND_RELEASE.md) defines release gates and browser evidence.
-5. `docs/superpowers/plans/` provides implementation sequencing; a plan cannot override items 1-4.
-6. [PROJECT_HISTORY.md](PROJECT_HISTORY.md), reviews, and earlier designs are historical evidence only.
+2. [superpowers/specs/2026-07-11-my-avatars-cross-game-foundation-design.md](superpowers/specs/2026-07-11-my-avatars-cross-game-foundation-design.md) is the approved normative amendment for the My Avatars identity, Spec 1 cross-game boundary, and explicit local retention of normalized Source Photos.
+3. [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md) controls collection, retention, child safety, and prompt handling except for the Source Photo amendment stated in item 2.
+4. [OPERATIONS.md](OPERATIONS.md) controls deployment, quotas, Workshop access, recovery, and monitoring.
+5. [TESTING_AND_RELEASE.md](TESTING_AND_RELEASE.md) defines release gates and browser evidence.
+6. `docs/superpowers/plans/` provides implementation sequencing; a plan cannot override items 1-5.
+7. [PROJECT_HISTORY.md](PROJECT_HISTORY.md), reviews, and earlier designs are historical evidence only.
 
 ## Core Documents
 
 1. [FINAL_SOLUTION.md](FINAL_SOLUTION.md): approved Mode-Isolated Modular Workbench, contracts, routes, invariants, and delivery boundary.
-2. [PROJECT_HISTORY.md](PROJECT_HISTORY.md): what was built, observed, tried, rejected, and learned.
-3. [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md): local-photo boundary, telemetry gate, sanitization, quarantine, and retention.
-4. [OPERATIONS.md](OPERATIONS.md): free-service topology, authentication, publishing, rollback, quotas, and PWA installation.
-5. [TESTING_AND_RELEASE.md](TESTING_AND_RELEASE.md): renderer, privacy, Workshop, PWA, and deployment gates.
-6. [HANDOFF.md](HANDOFF.md): concise continuation context for another agent.
+2. [superpowers/specs/2026-07-11-my-avatars-cross-game-foundation-design.md](superpowers/specs/2026-07-11-my-avatars-cross-game-foundation-design.md): approved My Avatars Spec 1 amendment and cross-game foundation.
+3. [PROJECT_HISTORY.md](PROJECT_HISTORY.md): what was built, observed, tried, rejected, and learned.
+4. [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md): local-photo boundary, telemetry gate, sanitization, quarantine, and retention.
+5. [OPERATIONS.md](OPERATIONS.md): free-service topology, authentication, publishing, rollback, quotas, and PWA installation.
+6. [TESTING_AND_RELEASE.md](TESTING_AND_RELEASE.md): renderer, privacy, Workshop, PWA, and deployment gates.
+7. [HANDOFF.md](HANDOFF.md): concise continuation context for another agent.
 
 ## Plans and Reviews
 
