@@ -1,5 +1,7 @@
 # Minecraft Skin Forge Design
 
+> Historical design only. Superseded by `2026-07-11-my-avatars-cross-game-foundation-design.md` and `docs/FINAL_SOLUTION.md`.
+
 ## Goal
 
 Build a free, static website that turns a user-provided portrait into a

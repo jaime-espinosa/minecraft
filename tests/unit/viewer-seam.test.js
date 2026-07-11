@@ -20,10 +20,10 @@ test('viewer exposes the renamed Minecraft API without remote dependencies', asy
 });
 
 test('the optional viewer is lazy and has an accessible nonblocking fallback', async () => {
-  const [app, html] = await Promise.all([read('app.js'), read('index.html')]);
+  const [app, html] = await Promise.all([read('src/integration/app-controller.js'), read('index.html')]);
 
-  assert.match(app, /import\(['"]\.\/viewer\.js['"]\)/);
-  assert.doesNotMatch(app, /^import .*from ['"]\.\/viewer\.js['"]/m);
+  assert.match(app, /import\(['"]\.\.\/\.\.\/viewer\.js['"]\)/);
+  assert.doesNotMatch(app, /^import .*from ['"]\.\.\/\.\.\/viewer\.js['"]/m);
   assert.match(app, /minecraft-texture-image[\s\S]*addEventListener\(['"]load['"]/);
   assert.match(html, /id="minecraft-avatar-viewer"[^>]*hidden/);
   assert.match(html, /id="minecraft-viewer-notice"[^>]*role="status"[^>]*aria-live="polite"[^>]*hidden/);
@@ -49,5 +49,5 @@ test('viewer render loop guards disposal and cancels its scheduled animation fra
 });
 
 test('app drives viewer invalidation from session renders and guards pending loads by URL',async()=>{
-  const app=await read('app.js');assert.match(app,/session\.subscribe\([\s\S]*setTextureUrl/);assert.match(app,/loadTexture\(minecraftTextureImage, url/);assert.doesNotMatch(app,/let minecraftViewerLoad|let minecraftViewer =/);
+  const app=await read('src/integration/app-controller.js');assert.match(app,/session\.subscribe\([\s\S]*setTextureUrl/);assert.match(app,/loadTexture\(\s*texture,\s*session\.getViewModel\(\)\.previews\.minecraft\.url/);assert.doesNotMatch(app,/let minecraftViewerLoad|let minecraftViewer =/);
 });

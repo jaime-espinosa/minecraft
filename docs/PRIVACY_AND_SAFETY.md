@@ -2,7 +2,7 @@
 
 ## Principles
 
-Skin Forge is designed for children and families. Local creation is the default, not a degraded privacy mode. The app must explain what leaves the device in age-appropriate language and remain fully usable when remote collection is disabled.
+My Avatars is designed for children and families. Local creation is the default, not a degraded privacy mode. The app must explain what leaves the device in age-appropriate language and remain fully usable when remote collection is disabled.
 
 ## Data Boundaries
 

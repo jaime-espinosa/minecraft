@@ -7,7 +7,7 @@ My Avatars is a privacy-first, browser-based studio for building one block avata
 
 ## Current Product
 
-The dependable studio starts without a photo, keeps source material local, composes exact platform artifacts from semantic avatar choices, and treats the 3D Minecraft viewer as an optional enhancement. The checked-in service worker caches only an exact public shell allowlist and never caches photos or generated downloads.
+The dependable studio starts without a photo, persists saved looks locally when IndexedDB is available, falls back to memory when it is not, and composes exact Minecraft and Roblox Classic artifacts from semantic avatar choices. Optional capture normalizes and analyzes source photos only after the Experimental route is opened. The 3D Minecraft viewer remains an optional enhancement. The checked-in service worker caches only an exact public shell allowlist and never caches photos or generated downloads.
 
 The current generator is useful but not a proven likeness system. Its former `0.9327` score was self-referential and must not be interpreted as perceptual similarity.
 

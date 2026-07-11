@@ -1,4 +1,6 @@
-# Skin Forge Project Handoff
+# Historical Skin Forge Project Handoff
+
+> Historical evidence only. This handoff describes the retired Minecraft-only prototype and is superseded by `docs/FINAL_SOLUTION.md` and the My Avatars cross-game foundation design.
 
 Last updated: 2026-07-10 (America/Los_Angeles)
 

@@ -10,6 +10,29 @@ const deepFreeze = (value) => {
 
 const clone = (value) => structuredClone(value);
 
+const acceptedPalette = (frame, field) => {
+  if (field === 'complexion') return frame.identity.complexionPalette;
+  if (field === 'hair') return frame.identity.hair.palette;
+  return frame.identity.outfit[field];
+};
+
+const projectProposal = (proposal, frame, photos) => {
+  if (!proposal) return null;
+  const rolesById = new Map(photos.map(({ id, role }) => [id, role]));
+  return {
+    id: proposal.id,
+    confidence: proposal.confidence,
+    warnings: clone(proposal.warnings),
+    evidenceRoles: [...new Set(proposal.evidencePhotoIds.map((id) => rolesById.get(id)).filter(Boolean))],
+    preselectedFields: proposal.confidence === 'high' ? proposal.operations.map(({ field }) => field) : [],
+    operations: proposal.operations.map(({ field, value }) => ({
+      field,
+      accepted: clone(acceptedPalette(frame, field)),
+      proposed: clone(value),
+    })),
+  };
+};
+
 export function createStudioViewModel({
   frame,
   recipes,
@@ -36,10 +59,16 @@ export function createStudioViewModel({
       style: clone(frame.recipe.style),
       platformProfiles: clone(frame.recipe.platformProfiles),
     },
-    proposal: proposal ? clone(proposal) : null,
+    proposal: projectProposal(proposal, frame, photos),
     previews: {
       minecraft: { url: platforms.minecraft?.url ?? null, preflight: clone(platforms.minecraft?.preflight ?? null), status: platforms.minecraft?.status ?? 'idle' },
-      robloxClassic: { url: platforms.robloxClassic?.url ?? null, preflight: clone(platforms.robloxClassic?.preflight ?? null), status: platforms.robloxClassic?.status ?? 'idle' },
+      robloxClassic: {
+        url: platforms.robloxClassic?.url ?? null,
+        shirtUrl: platforms.robloxClassic?.shirtUrl ?? null,
+        pantsUrl: platforms.robloxClassic?.pantsUrl ?? null,
+        preflight: clone(platforms.robloxClassic?.preflight ?? null),
+        status: platforms.robloxClassic?.status ?? 'idle',
+      },
     },
     exports: {
       minecraft: platforms.minecraft?.filename ? { available: true, filename: platforms.minecraft.filename } : { available: false, filename: 'my-avatar-minecraft.png' },

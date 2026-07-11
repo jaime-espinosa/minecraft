@@ -1,4 +1,5 @@
 import { createDefaultIdentity, createDefaultRecipe } from '../domain/defaults.js';
+import { canonicalJson } from '../domain/canonical-json.js';
 import { validateAvatarOperation, validateAvatarRecipeV1, validateIdentityProfileV1, validateSourcePhotoV1 } from '../domain/contracts.js';
 import { err, ok } from '../domain/result.js';
 import { DB_NAME, STORE_NAMES, openDatabase, requestResult, runTransaction } from './database.js';
@@ -91,6 +92,18 @@ export async function openIdentityLibrary({ indexedDB, databaseName = DB_NAME, s
       const values = await Promise.all(STORE_NAMES.map((name) => name === 'meta' ? requestResult(tx.objectStore(name).get('library')) : all(tx.objectStore(name))));
       return Object.fromEntries(STORE_NAMES.map((name, index) => [name, name === 'meta' ? values[index] ?? null : values[index]]));
     },
+    async getNormalizedPhoto(id) {
+      if (typeof id !== 'string' || !id) return err({ kind: 'invalid-photo-id', message: 'A local photo ID is required.' });
+      try {
+        const transaction = db.transaction(['photos'], 'readonly');
+        const value = await requestResult(transaction.objectStore('photos').get(id));
+        return value
+          ? ok({ metadata: clone(value.metadata), blob: value.blob })
+          : err({ kind: 'photo-not-found', message: 'That local source photo was not found.' });
+      } catch (error) {
+        return err({ kind: error?.kind ?? 'storage-failed', message: error?.message || 'Local photo retrieval failed.' });
+      }
+    },
     async saveIdentity(identity, { baseRevision } = {}) {
       try { validateIdentityProfileV1(identity); } catch (error) { return err({ kind: 'invalid-record', message: error.message }); }
       return runTransaction(db, ['identities', 'recipes', 'meta'], 'readwrite', async (tx) => {
@@ -113,6 +126,28 @@ export async function openIdentityLibrary({ indexedDB, databaseName = DB_NAME, s
         const identities = await all(tx.objectStore('identities')); const activeIdentity = identities.sort((a, b) => a.revision - b.revision).at(-1);
         if (!activeIdentity || recipe.identityRevision !== activeIdentity.revision) throw Object.assign(new Error('Recipe identity revision is not active.'), { kind: 'identity-revision-conflict' });
         recipes.put(clone(recipe)); const meta = await requestResult(tx.objectStore('meta').get('library')); meta.activeRecipeId = recipe.id; meta.updatedAt = clock(); tx.objectStore('meta').put(meta); return recipe;
+      });
+    },
+    async selectRecipe(id) {
+      return runTransaction(db, ['recipes', 'meta'], 'readwrite', async (tx) => {
+        if (!await requestResult(tx.objectStore('recipes').get(id))) throw Object.assign(new Error('Recipe not found.'), { kind: 'look-not-found' });
+        const meta = await requestResult(tx.objectStore('meta').get('library')); meta.activeRecipeId = id; meta.updatedAt = clock(); tx.objectStore('meta').put(meta); return id;
+      });
+    },
+    async reserveNextRecipeId() {
+      return runTransaction(db, ['recipes', 'meta'], 'readwrite', async (tx) => {
+        const records = await all(tx.objectStore('recipes'));
+        const metaStore = tx.objectStore('meta');
+        const meta = await requestResult(metaStore.get('library'));
+        const retainedMaximum = Math.max(
+          1,
+          ...records.map(({ id }) => Number(/^avatar-(\d+)$/.exec(id)?.[1] ?? 0)),
+        );
+        const next = Math.max(meta.maxRecipeSequence ?? 1, retainedMaximum) + 1;
+        meta.maxRecipeSequence = next;
+        meta.updatedAt = clock();
+        metaStore.put(meta);
+        return `avatar-${next}`;
       });
     },
     async storeNormalizedPhoto(envelope) {
@@ -151,6 +186,26 @@ export async function openIdentityLibrary({ indexedDB, databaseName = DB_NAME, s
         for (const identity of await all(tx.objectStore('identities'))) tx.objectStore('identities').put(sanitizeProvenance(identity));
       });
     },
+    async deleteUnusedPhotos(usedIds) {
+      if (!(usedIds instanceof Set) || [...usedIds].some((id) => typeof id !== 'string' || !id)) return err({ kind: 'invalid-photo-ids', message: 'Used local photo IDs are invalid.' });
+      return runTransaction(db, ['photos', 'identities', 'drafts', 'artifacts'], 'readwrite', async (tx) => {
+        const photos = tx.objectStore('photos');
+        const deletedIds = new Set();
+        for (const record of await all(photos)) {
+          if (!usedIds.has(record.metadata.id)) {
+            photos.delete(record.metadata.id);
+            deletedIds.add(record.metadata.id);
+          }
+        }
+        for (const storeName of ['drafts', 'artifacts']) {
+          const store = tx.objectStore(storeName);
+          for (const record of await all(store)) if (record.sourcePhotoIds.some((id) => deletedIds.has(id))) store.delete(record.id);
+        }
+        const identities = tx.objectStore('identities');
+        for (const identity of await all(identities)) identities.put(sanitizeProvenance(identity, deletedIds));
+        return [...deletedIds];
+      });
+    },
     async deleteLook(id) {
       return runTransaction(db, ['recipes', 'drafts', 'artifacts', 'meta'], 'readwrite', async (tx) => {
         const recipes = tx.objectStore('recipes'); const records = await all(recipes);
@@ -169,6 +224,13 @@ export async function openIdentityLibrary({ indexedDB, databaseName = DB_NAME, s
         for (const name of STORE_NAMES) tx.objectStore(name).clear();
         tx.objectStore('meta').put(metaRecord(createId(), clock(), null));
         beforeCommit?.();
+      });
+    },
+    async replaceLibraryWithFrame(frame) {
+      try { validateIdentityProfileV1(frame.identity); validateAvatarRecipeV1(frame.recipe); } catch (error) { return err({ kind: 'invalid-record', message: error.message }); }
+      return runTransaction(db, STORE_NAMES, 'readwrite', (tx) => {
+        for (const name of STORE_NAMES) tx.objectStore(name).clear();
+        const now=clock();tx.objectStore('meta').put(metaRecord(createId(),now,frame.recipe.id));tx.objectStore('identities').put(clone(frame.identity));tx.objectStore('recipes').put(clone(frame.recipe));return frame;
       });
     },
     async replaceFromBackup(document, { expectedBackupLibraryId, expectedCurrentLibraryId, confirmed = false } = {}) {
@@ -192,6 +254,43 @@ export async function openIdentityLibrary({ indexedDB, databaseName = DB_NAME, s
         tx.objectStore('meta').put({ key: 'library', schemaVersion: 1, libraryId: document.libraryId, createdAt: document.exportedAt, updatedAt: clock(), activeRecipeId: document.activeRecipeId });
         tx.objectStore('identities').put(clone(document.activeIdentity));
         for (const recipe of document.recipes) tx.objectStore('recipes').put(clone(recipe));
+      });
+    },
+    async restoreFromBackupAsNewPerson(document, { expectedCurrentLibraryId, confirmed = false, beforeCommit } = {}) {
+      if (!confirmed) return err({ kind: 'confirmation-required', message: 'Confirm destructive restore as a new person and library.' });
+      try {
+        validateIdentityProfileV1(document.activeIdentity);
+        if (!Array.isArray(document.recipes) || !document.recipes.length) throw new TypeError('Backup recipes are required.');
+        for (const recipe of document.recipes) validateAvatarRecipeV1(recipe);
+        const ids = new Set(document.recipes.map(({ id }) => id));
+        if (ids.size !== document.recipes.length || !ids.has(document.activeRecipeId)) throw new TypeError('Backup recipe IDs are invalid.');
+        if (document.recipes.some(({ identityRevision }) => identityRevision !== document.activeIdentity.revision)) throw new TypeError('Backup recipe identity revision is dangling.');
+      } catch (error) { return err({ kind: 'invalid-backup', message: error.message }); }
+      return runTransaction(db, STORE_NAMES, 'readwrite', async (tx) => {
+        const [metaRecords, identities, recipes, photos, drafts, artifacts] = await Promise.all([
+          all(tx.objectStore('meta')),
+          all(tx.objectStore('identities')),
+          all(tx.objectStore('recipes')),
+          all(tx.objectStore('photos')),
+          all(tx.objectStore('drafts')),
+          all(tx.objectStore('artifacts')),
+        ]);
+        const currentMeta = metaRecords.find(({ key }) => key === 'library') ?? null;
+        if ((currentMeta?.libraryId ?? null) !== expectedCurrentLibraryId) throw Object.assign(new Error('The local library changed before disaster recovery.'), { kind: 'library-changed' });
+        const pristine = metaRecords.length === 1
+          && identities.length === 1
+          && recipes.length === 1
+          && photos.length === 0
+          && drafts.length === 0
+          && artifacts.length === 0
+          && canonicalJson(identities[0]) === canonicalJson(createDefaultIdentity())
+          && canonicalJson(recipes[0]) === canonicalJson(createDefaultRecipe());
+        if (!pristine) throw Object.assign(new Error('Disaster recovery requires a fresh local library.'), { kind: 'restore-not-pristine' });
+        for (const name of STORE_NAMES) tx.objectStore(name).clear();
+        tx.objectStore('meta').put({ key: 'library', schemaVersion: 1, libraryId: document.libraryId, createdAt: document.exportedAt, updatedAt: clock(), activeRecipeId: document.activeRecipeId });
+        tx.objectStore('identities').put(clone(document.activeIdentity));
+        for (const recipe of document.recipes) tx.objectStore('recipes').put(clone(recipe));
+        beforeCommit?.();
       });
     },
   };

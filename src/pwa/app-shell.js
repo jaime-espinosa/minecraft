@@ -1,5 +1,5 @@
 export const PUBLIC_BASE = '/my-avatars/';
-export const SHELL_VERSION = 'v2';
+export const SHELL_VERSION = 'v5';
 export const CACHE_PREFIX = 'my-avatars-shell-';
 export const CACHE_NAME = `${CACHE_PREFIX}${SHELL_VERSION}`;
 
@@ -31,6 +31,14 @@ export const PUBLIC_PATHS = Object.freeze([
   '/my-avatars/src/identity-library/database.js',
   '/my-avatars/src/identity-library/photo-normalizer.js',
   '/my-avatars/src/identity-library/repository.js',
+  '/my-avatars/src/integration/bootstrap.js',
+  '/my-avatars/src/integration/app-controller.js',
+  '/my-avatars/src/integration/backup-controller.js',
+  '/my-avatars/src/integration/browser-photo-adapter.js',
+  '/my-avatars/src/integration/capture-controller.js',
+  '/my-avatars/src/integration/durable-library.js',
+  '/my-avatars/src/integration/export-controller.js',
+  '/my-avatars/src/integration/library-controller.js',
   '/my-avatars/src/presentation/config.js',
   '/my-avatars/src/presentation/shell.js',
   '/my-avatars/src/pwa/app-shell.js',

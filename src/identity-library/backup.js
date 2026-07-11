@@ -48,3 +48,15 @@ export async function importLibraryBackup(repository, input, { confirmed = false
     confirmed,
   });
 }
+
+export async function restoreLibraryBackupAsNewPerson(repository, input, { confirmed = false, beforeCommit } = {}) {
+  let document;
+  try { document = parseBackup(input); } catch (error) { return err({ kind: 'invalid-backup', message: error.message }); }
+  if (!confirmed) return err({ kind: 'confirmation-required', message: 'Confirm destructive restore as a new person and library.' });
+  const current = await repository.readLibrary();
+  return repository.restoreFromBackupAsNewPerson(document, {
+    expectedCurrentLibraryId: current.meta?.libraryId ?? null,
+    confirmed,
+    beforeCommit,
+  });
+}

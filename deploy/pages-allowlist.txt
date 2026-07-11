@@ -25,6 +25,14 @@ src/identity-library/backup.js
 src/identity-library/database.js
 src/identity-library/photo-normalizer.js
 src/identity-library/repository.js
+src/integration/bootstrap.js
+src/integration/app-controller.js
+src/integration/backup-controller.js
+src/integration/browser-photo-adapter.js
+src/integration/capture-controller.js
+src/integration/durable-library.js
+src/integration/export-controller.js
+src/integration/library-controller.js
 src/presentation/config.js
 src/presentation/shell.js
 src/pwa/app-shell.js

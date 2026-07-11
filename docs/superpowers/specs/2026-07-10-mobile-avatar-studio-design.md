@@ -1,5 +1,7 @@
 # Skin Forge Mobile Avatar Studio Design
 
+> Historical design only. Superseded by `2026-07-11-my-avatars-cross-game-foundation-design.md` and `docs/FINAL_SOLUTION.md`.
+
 Date: 2026-07-10
 
 ## Objective

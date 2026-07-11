@@ -29,6 +29,16 @@ export function orderNavigationItems(items, order) {
   return [...items].sort((left, right) => order.indexOf(left.dataset.navGroup) - order.indexOf(right.dataset.navGroup));
 }
 
+const manualPalette = (primary) => {
+  const channels = primary.match(/[0-9a-f]{2}/gi).map((value) => Number.parseInt(value, 16));
+  const hex = (values) => `#${values.map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+  return {
+    primary,
+    shadow: hex(channels.map((value) => Math.max(0, Math.min(255, Math.round(value * .72))))),
+    highlight: hex(channels.map((value) => Math.max(0, Math.min(255, Math.round(value + (255 - value) * .18))))),
+  };
+};
+
 export function renderStudioShell(root, session, config) {
   root.body?.classList.add(`layout-${config.layoutVariant}`);
   root.querySelector('.brand').textContent = config.labels.brand;
@@ -42,11 +52,21 @@ export function renderStudioShell(root, session, config) {
     expression: root.querySelector('#expression'), hairStyle: root.querySelector('#hair-style'),
     model: [...root.querySelectorAll('input[name="model"]')], status: root.querySelector('#status'),
   };
+  const manualControls = new Map([
+    ['complexion', root.querySelector('#manual-complexion')],
+    ['hair', root.querySelector('#manual-hair')],
+    ['top', root.querySelector('#manual-top')],
+    ['bottom', root.querySelector('#manual-bottom')],
+    ['footwear', root.querySelector('#manual-footwear')],
+  ]);
   const render = (model) => {
     controls.status.textContent = model.announcement;
     controls.expression.value = model.editor.face.expression;
     controls.hairStyle.value = model.editor.hair.style;
     controls.model.forEach((input) => { input.checked = input.value === model.editor.platformProfiles.minecraft.geometry; });
+    manualControls.get('complexion').value = model.editor.complexionPalette.primary;
+    manualControls.get('hair').value = model.editor.hair.palette.primary;
+    for (const field of ['top', 'bottom', 'footwear']) manualControls.get(field).value = model.editor.outfit[field].primary;
     root.querySelector('#active-look-label').textContent = model.activeRecipe.localLabel;
     const routeView = getRoutePresentation(model.route);
     root.querySelector('#page-title').textContent = routeView.heading;
@@ -75,6 +95,19 @@ export function renderStudioShell(root, session, config) {
   };
   controls.expression.addEventListener('change', () => session.dispatch({ type: 'edit', baseRevision: session.getViewModel().activeRecipe.revision, operations: [{ op: 'set-expression', value: controls.expression.value }] }));
   controls.hairStyle.addEventListener('change', () => session.dispatch({ type: 'edit', baseRevision: session.getViewModel().activeRecipe.revision, operations: [{ op: 'set-hair', value: { style: controls.hairStyle.value, volume: session.getViewModel().editor.hair.volume } }] }));
+  for (const [field, input] of manualControls) input.addEventListener('change', () => {
+    const model = session.getViewModel();
+    session.dispatch({
+      type: 'edit',
+      baseRevision: model.activeRecipe.revision,
+      operations: [{
+        op: 'set-palette',
+        field,
+        value: manualPalette(input.value),
+        provenance: { source: 'manual', sourcePhotoIds: [], evidenceState: 'not-applicable' },
+      }],
+    });
+  });
   root.querySelector('#generate-button').addEventListener('click', () => session.dispatch({ type: 'compile-minecraft' }));
   root.querySelector('#save-look').addEventListener('click', () => session.dispatch({ type: 'save-look' }));
   root.querySelectorAll('[data-route]').forEach((link) => link.addEventListener('click', () => { location.hash = link.dataset.route.slice(1); }));

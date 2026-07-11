@@ -94,6 +94,7 @@ test('checked-in schema is closed and presentation wiring consumes config', asyn
   for (const nested of ['tokens', 'labels', 'features']) assert.equal(schema.properties[nested].additionalProperties, false);
   const shell = await readFile(new URL('../../src/presentation/shell.js', import.meta.url), 'utf8');
   const app = await readFile(new URL('../../app.js', import.meta.url), 'utf8');
+  const appController = await readFile(new URL('../../src/integration/app-controller.js', import.meta.url), 'utf8');
   const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
   const css = await readFile(new URL('../../styles.css', import.meta.url), 'utf8');
   assert.match(shell, /aria-current/);
@@ -107,8 +108,8 @@ test('checked-in schema is closed and presentation wiring consumes config', asyn
   assert.match(shell, /removeAttribute\(['"]src['"]\)/);
   assert.match(shell, /removeAttribute\(['"]href['"]\)/);
   assert.match(shell, /avatar-silhouette/);
-  assert.match(app, /pagehide[\s\S]*persisted/);
-  assert.match(app, /pageshow[\s\S]*persisted/);
+  assert.match(appController, /pagehide[\s\S]*persisted/);
+  assert.match(appController, /pageshow[\s\S]*persisted/);
   assert.match(app, /createObjectURL\(bytes,\s*mediaType\)/);
   assert.match(css, /input:focus-visible\s*\+\s*span/);
   assert.match(css, /layout-stage-right \.export-panel\s*\{\s*order:3/);
@@ -117,5 +118,5 @@ test('checked-in schema is closed and presentation wiring consumes config', asyn
   assert.match(css, /\[aria-current=['"]page['"]\][^{]*\{[^}]*font-weight/);
   assert.match(css, /(?:\[aria-current=['"]page['"]\]|\.is-current)::after\s*\{[^}]*content:\s*['"]Current['"]/);
   assert.doesNotMatch(shell, /session\.dispatch\(\{ type: 'navigate'/);
-  assert.match(app, /hashchange[\s\S]*handleRoute/);
+  assert.match(appController, /hashchange[\s\S]*handleRoute/);
 });

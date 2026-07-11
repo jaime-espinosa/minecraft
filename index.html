@@ -51,13 +51,24 @@
           <label>Hair style
             <select id="hair-style"><option value="crop">Cropped</option><option value="curl" selected>Curly</option><option value="sweep">Side sweep</option><option value="long">Long</option></select>
           </label>
+          <fieldset id="manual-palette-controls">
+            <legend>Manual colors</legend>
+            <div class="manual-color-grid">
+              <label>Complexion <input id="manual-complexion" type="color" value="#c98e68" /></label>
+              <label>Hair <input id="manual-hair" type="color" value="#422a1f" /></label>
+              <label>Top <input id="manual-top" type="color" value="#376c80" /></label>
+              <label>Bottom <input id="manual-bottom" type="color" value="#314659" /></label>
+              <label>Footwear <input id="manual-footwear" type="color" value="#241e1c" /></label>
+            </div>
+          </fieldset>
           <fieldset>
             <legend>Minecraft player model</legend>
             <div class="choice-grid" role="radiogroup" aria-label="Minecraft geometry">
               <label for="classic"><input id="classic" name="model" type="radio" value="classic" checked /><span>Classic<strong>4px arms</strong></span></label>
               <label for="slim"><input id="slim" name="model" type="radio" value="slim" /><span>Slim<strong>3px arms</strong></span></label>
-            </div>
-            <small>Double-click or press Enter to select and continue. A visible Continue button is always available.</small>
+              </div>
+              <label><input id="minecraft-outer-layers" type="checkbox" checked /> Include Minecraft outer clothing and hair layers</label>
+              <small>Double-click or press Enter to select and continue. A visible Continue button is always available.</small>
           </fieldset>
           <div class="button-row">
             <button id="save-look" type="button" class="secondary-button">Save look</button>
@@ -69,6 +80,30 @@
           <div class="panel-heading"><span>03</span><h2 id="export-title">Export checkpoint</h2></div>
           <div id="result-placeholder"><p>Your exact 64 × 64 Minecraft PNG appears here after validation.</p></div>
           <a id="download-button" class="download-button" download="my-avatar-minecraft.png" hidden>Download Minecraft PNG</a>
+          <div class="button-row">
+            <button id="compile-minecraft" type="button">Compile Minecraft</button>
+            <a id="download-minecraft" class="download-button" download="my-avatar-minecraft.png" hidden>Download Minecraft PNG</a>
+          </div>
+          <ul id="minecraft-preflight" class="preflight-list" aria-label="Minecraft local validation checks"></ul>
+          <label><input id="roblox-notice" type="checkbox" /> I understand Roblox upload, moderation, compatibility, fees, and publication are external.</label>
+          <div class="button-row">
+            <button id="compile-roblox-classic" type="button">Compile Roblox Classic package</button>
+            <a id="download-roblox-classic" class="download-button" download="my-avatar-roblox-classic.zip" hidden>Download Roblox package</a>
+          </div>
+          <div class="roblox-previews" aria-label="Exact Roblox Classic candidate previews">
+            <figure><img id="roblox-shirt-preview" alt="Generated Roblox Classic shirt candidate" hidden /><figcaption>Shirt candidate</figcaption></figure>
+            <figure><img id="roblox-pants-preview" alt="Generated Roblox Classic pants candidate" hidden /><figcaption>Pants candidate</figcaption></figure>
+          </div>
+          <ul id="roblox-preflight" class="preflight-list" aria-label="Roblox Classic local validation checks"></ul>
+          <ol id="roblox-limitations" class="limitations-list">
+            <li data-roblox-limitation>Unzip the My Avatars package locally.</li>
+            <li data-roblox-limitation>Upload the shirt and pants images separately through Roblox Classic clothing workflows.</li>
+            <li data-roblox-limitation>Do not upload the included manifest or README files.</li>
+            <li data-roblox-limitation>This does not create a Classic T-shirt or ShirtGraphic.</li>
+            <li data-roblox-limitation>Test both candidates on a Block Avatar in Roblox Studio.</li>
+            <li data-roblox-limitation>Modern and user-generated bodies may not display 2D Classic clothing correctly.</li>
+            <li data-roblox-limitation>Hair, faces, accessories, bodies, upload, moderation, fees, and publication remain manual and external.</li>
+          </ol>
           <p class="validation-note"><strong>Validation:</strong> required faces, hair layer, outer layers, PNG structure, and decoded pixels are checked locally.</p>
         </aside>
       </section>
@@ -77,6 +112,54 @@
         <h2 id="library-title">Local library</h2>
         <p>Many saved looks for one person. Starting for another person requires destructive confirmation.</p>
         <button id="request-reset-person" type="button" class="danger-button">Start for another person…</button>
+        <div id="library-looks" aria-label="Saved looks"></div>
+        <div id="library-photos" aria-label="Local normalized source photos"></div>
+        <button id="delete-all-photos" type="button" class="danger-button">Delete all local source photos…</button>
+        <section class="library-backups" aria-labelledby="library-backups-title">
+          <h3 id="library-backups-title">Photo-free library backup</h3>
+          <p>Backups do not include photos. Importing replaces saved identity data and looks, and removes retained photos.</p>
+          <div class="button-row">
+            <button id="export-library-backup" type="button">Prepare backup</button>
+            <a id="download-library-backup" class="download-button" hidden>Download backup</a>
+          </div>
+          <label>Choose backup file <input id="import-library-backup-file" type="file" accept="application/json,.json" /></label>
+          <button id="import-library-backup" type="button" disabled>Import and replace local library…</button>
+          <p id="library-backup-status" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <section id="capture-panel" class="panel" aria-labelledby="capture-title" hidden>
+        <h2 id="capture-title">Optional local capture</h2>
+        <p>No photo is required. Files are normalized and analyzed only on this device.</p>
+        <label>Analyze a retained local photo
+          <select id="retained-photo" aria-describedby="retained-photo-help"></select>
+        </label>
+        <p id="retained-photo-help">Only the selected normalized photo is loaded from this device.</p>
+        <button id="load-retained-photo" type="button" disabled>Load selected photo</button>
+        <label>Photo role <select id="capture-role"><option value="face-front">Face front</option><option value="hair-detail">Hair detail</option><option value="outfit-front">Outfit front</option><option value="outfit-detail">Outfit detail</option></select></label>
+        <label>Choose or take a photo <input id="capture-file" type="file" accept="image/*" capture="environment" /></label>
+        <label>Focus horizontal <input id="focus-x" type="range" min="0" max="1" step="0.01" value="0.5" /></label>
+        <label>Focus vertical <input id="focus-y" type="range" min="0" max="1" step="0.01" value="0.5" /></label>
+        <label>Focus size <input id="focus-size" type="range" min="0.1" max="1" step="0.01" value="1" /></label>
+        <div class="button-row">
+          <button id="confirm-capture" type="button" disabled>Confirm role and focus</button>
+          <button id="cancel-capture" type="button" disabled>Cancel selection</button>
+        </div>
+        <img id="capture-preview" alt="Local normalized source preview" hidden />
+        <fieldset id="photo-storage-recovery" class="recovery-panel" hidden>
+          <legend>Local photo storage is full</legend>
+          <p>Your avatar and normalized photo are still available in memory. Nothing was deleted automatically.</p>
+          <button id="retry-photo-save" type="button">Retry saving</button>
+          <button id="delete-unused-photos-and-retry" type="button">Delete unused photos and retry</button>
+          <button id="continue-without-saving-photo" type="button">Continue without saving this photo</button>
+        </fieldset>
+        <button id="analyze-photo" type="button" disabled>Analyze locally</button>
+        <p id="proposal-confidence" role="status"></p>
+        <ul id="proposal-warnings"></ul>
+        <fieldset id="proposal-fields"><legend>Proposed fields</legend></fieldset>
+        <button id="accept-proposal" type="button" disabled>Accept selected fields</button>
+        <button id="reject-proposal" type="button" disabled>Reject proposal</button>
+        <button id="manual-correction" type="button">Make a manual correction instead</button>
       </section>
 
       <p id="status" class="status" role="status" aria-live="polite">Your avatar is ready. No photo is required.</p>

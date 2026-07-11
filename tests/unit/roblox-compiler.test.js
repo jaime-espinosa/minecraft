@@ -74,6 +74,20 @@ test('preflight isolates corruption without affecting a later valid bundle', asy
   assert.equal((await compiler.preflight(corrupt)).passed,false); assert.equal((await compiler.preflight(compiled.value)).passed,true);
 });
 
+test('extractPreview requires successful preflight and exposes only shirt and pants PNG artifacts', async () => {
+  const kernel=createAvatarKernel(), snapshot=await kernel.snapshot(kernel.start().value), compiler=createRobloxClassicCompiler(), compiled=await compiler.compile({snapshot,profile:{blockAvatarNoticeAccepted:true}});
+  const unpreflighted=await compiler.extractPreview(compiled.value);
+  assert.equal(unpreflighted.ok,false); assert.equal(unpreflighted.fault.kind,'preflight-required');
+  const corrupt=structuredClone(compiled.value); corrupt.artifacts[0].bytes[40]^=255;
+  assert.equal((await compiler.preflight(corrupt)).passed,false); assert.equal((await compiler.extractPreview(corrupt)).ok,false);
+  assert.equal((await compiler.preflight(compiled.value)).passed,true);
+  const extracted=await compiler.extractPreview(compiled.value), zipPngs=parseZip(compiled.value.artifacts[0].bytes).filter(({name})=>name.endsWith('.png'));
+  assert.equal(extracted.ok,true); assert.equal(Object.isFrozen(extracted.value),true);
+  assert.deepEqual(extracted.value.map(({filename,mediaType,bytes})=>({filename,mediaType,bytes})),zipPngs.map(({name,bytes})=>({filename:name,mediaType:'image/png',bytes})));
+  assert.deepEqual(extracted.value.map((artifact)=>Reflect.ownKeys(artifact)),[['filename','mediaType','bytes'],['filename','mediaType','bytes']]);
+  assert.ok(extracted.value.every(Object.isFrozen)); assert.doesNotMatch(JSON.stringify(extracted.value),/manifest|private|semantic|sourceDigest/i);
+});
+
 test('preflight rejects a CRC-valid package whose manifest filenames are inconsistent', async () => {
   const kernel=createAvatarKernel(), snapshot=await kernel.snapshot(kernel.start().value), compiler=createRobloxClassicCompiler(), compiled=await compiler.compile({snapshot,profile:{blockAvatarNoticeAccepted:true}});
   const entries=parseZip(compiled.value.artifacts[0].bytes), manifestEntry=entries.find(({name})=>name==='manifest.json'), manifest=JSON.parse(new TextDecoder().decode(manifestEntry.bytes)); manifest.files[0].filename='wrong.png';

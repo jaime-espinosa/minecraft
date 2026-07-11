@@ -188,6 +188,9 @@ Dependency direction is fixed: presentation and routes call `StudioSession`; the
 
 **Files:** create `tests/integration/compiler-isolation.test.js`, update `tests/browser/scenarios.md`, current docs, and any failing implementation files within their existing contracts.
 
+- [ ] Wire the reviewed modules into the runtime: open the injected IndexedDB Identity Library with memory fallback, hydrate the active identity and saved looks, persist saved/deleted/reset looks, inject both platform compilers, and lazy-load the experimental photo/capture module only on its route.
+- [ ] Implement browser adapters for local decode/orientation/Canvas normalization, deferred photo persistence, crop/focus controls, proposal preview/accept/reject, library photo deletion, and both platform downloads. Keep original bytes and decoded resources transient and release them on every path.
+
 - [ ] Write the compiler-isolation test first: force either compiler to fail and prove the recipe, other compiler, and storage remain usable.
 - [ ] Run it red, implement only missing isolation handling, then run it green.
 - [ ] Run `npm test`; require zero failures and zero warnings.

@@ -23,6 +23,8 @@ PYTHONPATH=/home/jaime/src python3 -m _util._browse.mcp_server --http --port 876
 
 The local proxy additions support upload actions and Canvas extraction. Do not publish personal comparison pages or captured photographs.
 
+The manual runtime matrix is checked in at [browser scenarios](../tests/browser/scenarios.md). Use synthetic images only.
+
 ## Required Automated Layers
 
 1. **Kernel unit tests:** deterministic recipes, operation validation, stale revisions, defaults, migration, undo/redo, and photo-free startup.

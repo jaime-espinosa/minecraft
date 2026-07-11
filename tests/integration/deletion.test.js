@@ -27,6 +27,27 @@ test('photo deletion cascades private derivatives and sanitizes accepted provena
   assert.doesNotMatch(JSON.stringify(state), /photo-1/);
 });
 
+test('unused-photo cleanup sanitizes provenance in every retained identity revision', async () => {
+  const repository = (await openIdentityLibrary({ indexedDB: createFakeIndexedDB(), databaseName: `unused-${crypto.randomUUID()}` })).value;
+  await repository.storeNormalizedPhoto(createNormalizedPhoto());
+  const revisionTwo = structuredClone(createDefaultIdentity());
+  revisionTwo.revision = 2;
+  revisionTwo.provenance.hair = { source: 'photo-analysis', sourcePhotoIds: ['photo-1'], evidenceState: 'available' };
+  assert.equal((await repository.saveIdentity(revisionTwo, { baseRevision: 1 })).ok, true);
+  const revisionThree = structuredClone(revisionTwo);
+  revisionThree.revision = 3;
+  revisionThree.provenance.hair = { source: 'manual', sourcePhotoIds: [], evidenceState: 'not-applicable' };
+  assert.equal((await repository.saveIdentity(revisionThree, { baseRevision: 2 })).ok, true);
+
+  assert.equal((await repository.deleteUnusedPhotos(new Set())).ok, true);
+  const state = await repository.readLibrary();
+  assert.equal(state.photos.length, 0);
+  assert.deepEqual(state.identities.find(({ revision }) => revision === 2).provenance.hair, {
+    source: 'photo-analysis', sourcePhotoIds: [], evidenceState: 'deleted',
+  });
+  repository.db.close();
+});
+
 test('all-photo, look, and full-library deletion are explicit and bounded', async () => {
   const repository = await setup();
   await repository.storeNormalizedPhoto(createNormalizedPhoto());

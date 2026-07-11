@@ -2,7 +2,7 @@
 
 ## Status and Scope
 
-This is the authoritative target for My Avatars. It replaces earlier required-photo flows, IP-gated Workshop concepts, shared Solid/Experimental DOM designs, and the former self-referential likeness score. The local foundation now implements the dependable kernel, compilers, exact public PWA shell, and optional viewer seam; remote rename and production deployment remain separately authorized work.
+This is the authoritative target for My Avatars. It replaces earlier required-photo flows, IP-gated Workshop concepts, shared Solid/Experimental DOM designs, and the former self-referential likeness score. The local foundation now implements the dependable kernel, both compilers, IndexedDB hydration with memory fallback, lazy local capture/analyzer integration, the exact public PWA shell, and the optional viewer seam. Remote rename and production deployment remain separately authorized work.
 
 The product must remain useful without an account, a camera, a network connection, an AI service, or telemetry. Its primary users include children, so photos stay on the device by default and remote features fail closed.
 
@@ -82,6 +82,14 @@ The exact 2D canvas preview and exported decoded pixels must agree. Three.js is 
 The checked-in service worker is scoped to `/my-avatars/` and precaches only the versioned paths in `deploy/pages-allowlist.txt`. A new version is promoted only after every allowlisted response is staged successfully; failed installation retains the previous complete version. Fetch handling excludes authenticated, non-GET, nonallowlisted, Workshop, download, generated, `blob:`, and `data:` requests. It never opens or deletes IndexedDB.
 
 An installed update waits. It activates only after the user chooses Reload and the presentation reports no unsaved draft or migration. Activation removes obsolete My Avatars shell caches only. The Pages workflow assembles a temporary artifact from the checked-in allowlist and never uploads the repository root.
+
+## Runtime Integration
+
+Startup opens the local identity repository, validates the latest identity and active recipe, hydrates every saved look, and injects a durable adapter into `StudioSession`. Unavailable or corrupt storage produces an accessible memory-only notice and never blocks either compiler. Library writes are awaited before session state changes.
+
+The Library view exports canonical photo-free backups. Matching-library import requires destructive confirmation; a foreign backup remains rejected by ordinary import and can be restored after storage loss only through a separately confirmed restore-as-new-person operation that replaces all six stores atomically.
+
+The Experimental capture route alone lazy-loads browser normalization, palette analysis, and proposal review. It accepts camera-compatible image files, applies orientation, caps normalized dimensions at 2048, encodes JPEG at 0.92 or alpha sources as PNG, and stages storage with rollback. Source buffers, bitmaps, canvases, decoded pixels, and preview object URLs are released locally. No capture adapter has a network dependency.
 
 ## Solid Mode
 

@@ -6,18 +6,16 @@ import { createMinecraftCompiler } from '../../src/compilers/minecraft/compiler.
 import { createStudioSession } from '../../src/studio-session/studio-session.js';
 import { createMemoryLibrary } from '../../src/studio-session/memory-library.js';
 
-test('update safety tracks successful drafts and durable-library migration state',async()=>{
+test('reload-update stays behind the closed action and blocks unsafe reloads',async()=>{
   const kernel=createAvatarKernel(), initial=kernel.start().value, memory=createMemoryLibrary(initial.recipe);
   const library={list:()=>memory.list(),active:()=>memory.active(),save:(recipe)=>memory.save(recipe),select:(id)=>memory.select(id),delete:(id)=>memory.delete(id),reset:(recipe)=>memory.reset(recipe),hasMigration:()=>true};
   const session=createStudioSession({kernel,minecraftCompiler:createMinecraftCompiler(),library});
-  assert.deepEqual(session.getUpdateSafety(),{hasUnsavedDraft:false,hasMigration:true});
+  let activations = 0;
+  assert.equal((await session.dispatch({ type: 'reload-update', activate: () => { activations += 1; } })).fault.kind, 'reload-deferred');
   await session.dispatch({type:'edit',baseRevision:1,operations:[{op:'set-expression',value:'grin'}]});
-  assert.deepEqual(session.getUpdateSafety(),{hasUnsavedDraft:true,hasMigration:true});
-  const failed=await session.dispatch({type:'save-look',label:'<bad>'});assert.equal(failed.ok,false);assert.equal(session.getUpdateSafety().hasUnsavedDraft,true);
-  await session.dispatch({type:'save-look',label:'Safe'});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
-  await session.dispatch({type:'edit',baseRevision:1,minecraftProfile:{geometry:'slim',outerLayers:true}});assert.equal(session.getUpdateSafety().hasUnsavedDraft,true);
-  await session.dispatch({type:'select-look',id:initial.recipe.id});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
-  await session.dispatch({type:'edit',baseRevision:1,operations:[{op:'set-expression',value:'neutral'}]});await session.dispatch({type:'confirm-reset-person'});assert.equal(session.getUpdateSafety().hasUnsavedDraft,false);
+  const failed=await session.dispatch({type:'save-look',label:'<bad>'});assert.equal(failed.ok,false);
+  assert.equal((await session.dispatch({ type: 'reload-update', activate: () => { activations += 1; } })).fault.kind, 'reload-deferred');
+  assert.equal(activations, 0);
 });
 
 test('starts and edits without photos, storage, network, or viewer', async () => {
@@ -50,6 +48,51 @@ test('saves and selects multiple local looks', async () => {
   assert.equal(recipes.length, 3);
   await session.dispatch({ type: 'select-look', id: recipes[1].id });
   assert.equal(session.getViewModel().activeRecipe.localLabel, 'Explorer');
+  session.dispose();
+});
+
+test('recipe-only edits preserve a prior dirty identity until save persists both', async () => {
+  const kernel = createAvatarKernel();
+  const initial = kernel.start().value;
+  const memory = createMemoryLibrary(initial.recipe);
+  let identitySaves = 0;
+  const library = {
+    ...memory,
+    async saveIdentityFrame(frame, options) {
+      identitySaves += 1;
+      return memory.saveIdentityFrame(frame, options);
+    },
+  };
+  const session = createStudioSession({ kernel, library, minecraftCompiler: createMinecraftCompiler() });
+
+  assert.equal((await session.dispatch({
+    type: 'edit',
+    baseRevision: 1,
+    operations: [{ op: 'set-expression', value: 'grin' }],
+  })).ok, true);
+  assert.equal((await session.dispatch({
+    type: 'edit',
+    baseRevision: session.getViewModel().activeRecipe.revision,
+    operations: [{ op: 'set-style', value: { shading: 'soft', outline: false } }],
+  })).ok, true);
+  assert.equal((await session.dispatch({ type: 'save-look', label: 'Saved Together' })).ok, true);
+  assert.equal(identitySaves, 1);
+  session.dispose();
+});
+
+test('selecting a look cannot make an unsaved identity safe to reload', async () => {
+  const session = createStudioSession({ kernel: createAvatarKernel(), minecraftCompiler: createMinecraftCompiler() });
+  await session.dispatch({ type: 'save-look', label: 'Second' });
+  await session.dispatch({
+    type: 'edit',
+    baseRevision: session.getViewModel().activeRecipe.revision,
+    operations: [{ op: 'set-expression', value: 'grin' }],
+  });
+  await session.dispatch({ type: 'select-look', id: 'avatar-1' });
+  let activations = 0;
+  const reload = await session.dispatch({ type: 'reload-update', activate: () => { activations += 1; } });
+  assert.equal(reload.fault.kind, 'reload-deferred');
+  assert.equal(activations, 0);
   session.dispose();
 });
 
@@ -292,4 +335,146 @@ test('subscriptions announce changes and unknown actions are closed faults', asy
   assert.equal(session.getViewModel().identityRevision, before.identityRevision);
   assert.ok(notifications > 0);
   unsubscribe(); session.dispose();
+});
+
+test('allocates saved look IDs above the maximum numeric suffix after deletion', async () => {
+  const kernel = createAvatarKernel();
+  const initial = kernel.start().value;
+  const one = structuredClone(initial.recipe);
+  const three = structuredClone(initial.recipe);
+  three.id = 'avatar-3';
+  three.localLabel = 'Avatar 3';
+  const recipes = [one, three];
+  let activeId = one.id;
+  const library = {
+    list: () => structuredClone(recipes),
+    active: () => structuredClone(recipes.find(({ id }) => id === activeId)),
+    save(recipe) { recipes.push(structuredClone(recipe)); activeId = recipe.id; return recipe; },
+    delete(id) { recipes.splice(recipes.findIndex((recipe) => recipe.id === id), 1); return true; },
+    hasMigration: () => false,
+  };
+  const session = createStudioSession({ kernel, initialFrame: initial, library, minecraftCompiler: createMinecraftCompiler() });
+  await session.dispatch({ type: 'delete-look', id: 'avatar-3' });
+  const saved = await session.dispatch({ type: 'save-look' });
+  assert.equal(saved.value.id, 'avatar-4');
+  assert.equal(saved.value.localLabel, 'Avatar 4');
+  session.dispose();
+});
+
+test('proposal authority is visible only through the view model and dies with its evidence or person', async () => {
+  const session = createStudioSession({ kernel: createAvatarKernel(), minecraftCompiler: createMinecraftCompiler() });
+  assert.deepEqual(Object.keys(session).sort(), ['dispatch', 'dispose', 'getViewModel', 'subscribe']);
+  const envelope = { metadata: { id: 'photo-1', role: 'face-front', width: 32, height: 32, createdAt: '2026-01-01T00:00:00.000Z' }, blob: new Blob(['private']) };
+  assert.equal((await session.dispatch({ type: 'add-photo', envelope })).ok, true);
+  const analyzer = { analyze: async ({ baseIdentityRevision }) => ({ ok: true, value: {
+    id: 'proposal-1', baseIdentityRevision,
+    operations: [{ op: 'set-palette', field: 'complexion', value: { primary: '#8899aa', shadow: '#667788', highlight: '#aabbcc' }, provenance: { source: 'photo-analysis', sourcePhotoIds: ['photo-1'], evidenceState: 'available', analyzerVersion: 'test-v1', confidence: 'high' } }],
+    evidencePhotoIds: ['photo-1'], analyzerVersion: 'test-v1', confidence: 'high', warnings: [],
+  } }) };
+  assert.equal((await session.dispatch({ type: 'analyze', analyzer, analysisInput: { photoId: 'photo-1' } })).ok, true);
+  let model = session.getViewModel();
+  assert.deepEqual(model.library.photos, [{ id: 'photo-1', role: 'face-front', width: 32, height: 32, createdAt: '2026-01-01T00:00:00.000Z' }]);
+  assert.equal(model.proposal.confidence, 'high');
+  assert.deepEqual(model.proposal.evidenceRoles, ['face-front']);
+  assert.deepEqual(model.proposal.preselectedFields, ['complexion']);
+  assert.deepEqual(model.proposal.operations[0].accepted, model.editor.complexionPalette);
+  assert.deepEqual(model.proposal.operations[0].proposed, { primary: '#8899aa', shadow: '#667788', highlight: '#aabbcc' });
+  assert.doesNotMatch(JSON.stringify(model.proposal), /private|photo-1|sourcePhotoIds|evidencePhotoIds|analyzerVersion|"blob"/i);
+
+  await session.dispatch({ type: 'delete-photo', id: 'photo-1' });
+  assert.equal(session.getViewModel().proposal, null);
+  const deletedAccept = await session.dispatch({ type: 'accept-proposal', proposalId: 'proposal-1', selectedFields: ['complexion'] });
+  assert.equal(deletedAccept.ok, false);
+  assert.equal(deletedAccept.fault.kind, 'proposal-unavailable');
+
+  await session.dispatch({ type: 'add-photo', envelope });
+  await session.dispatch({ type: 'analyze', analyzer, analysisInput: { photoId: 'photo-1' } });
+  await session.dispatch({ type: 'confirm-reset-person' });
+  const resetAccept = await session.dispatch({ type: 'accept-proposal', proposalId: 'proposal-1', selectedFields: ['complexion'] });
+  assert.equal(resetAccept.ok, false);
+  assert.equal(resetAccept.fault.kind, 'proposal-unavailable');
+  session.dispose();
+});
+
+test('Roblox compile never edits its profile and a failed compile preserves ready Minecraft output', async () => {
+  const revoked = [];
+  const session = createStudioSession({
+    kernel: createAvatarKernel(),
+    minecraftCompiler: createMinecraftCompiler(),
+    robloxClassicCompiler: { compile: async () => ({ ok: false, fault: { kind: 'roblox-only', message: 'Roblox failed.' } }), preflight: async () => ({ passed: false, checks: [] }) },
+    urls: { createObjectURL: () => 'memory:minecraft', revokeObjectURL: (url) => revoked.push(url) },
+  });
+  await session.dispatch({ type: 'compile-minecraft' });
+  const before = session.getViewModel();
+  const failed = await session.dispatch({ type: 'compile-roblox-classic' });
+  const after = session.getViewModel();
+  assert.equal(failed.ok, false);
+  assert.deepEqual(after.activeRecipe, before.activeRecipe);
+  assert.equal(after.previews.minecraft.url, before.previews.minecraft.url);
+  assert.deepEqual(revoked, []);
+  session.dispose();
+});
+
+test('manual palette correction updates semantics with manual provenance', async () => {
+  const session = createStudioSession({ kernel: createAvatarKernel(), minecraftCompiler: createMinecraftCompiler() });
+  const palette = { primary: '#123456', shadow: '#0d253e', highlight: '#3d5a74' };
+  const changed = await session.dispatch({
+    type: 'edit',
+    baseRevision: 1,
+    operations: [{
+      op: 'set-palette',
+      field: 'complexion',
+      value: palette,
+      provenance: { source: 'manual', sourcePhotoIds: [], evidenceState: 'not-applicable' },
+    }],
+  });
+  assert.equal(changed.ok, true);
+  assert.deepEqual(changed.value.identity.complexionPalette, palette);
+  assert.deepEqual(changed.value.identity.provenance.complexion, { source: 'manual', sourcePhotoIds: [], evidenceState: 'not-applicable' });
+  assert.deepEqual(session.getViewModel().editor.complexionPalette, palette);
+  session.dispose();
+});
+
+test('pending analysis cannot resurrect a proposal after rejection or disposal', async () => {
+  let resolveAnalysis;
+  const analyzer = { analyze: () => new Promise((resolve) => { resolveAnalysis = resolve; }) };
+  const session = createStudioSession({ kernel: createAvatarKernel(), minecraftCompiler: createMinecraftCompiler() });
+  const envelope = { metadata: { id: 'photo-1', role: 'face-front', width: 1, height: 1, createdAt: '2026-01-01T00:00:00.000Z' }, blob: new Blob(['x']) };
+  await session.dispatch({ type: 'add-photo', envelope });
+  const pending = session.dispatch({ type: 'analyze', analyzer, analysisInput: { photoId: 'photo-1' } });
+  while (!resolveAnalysis) await new Promise((resolve) => setImmediate(resolve));
+  await session.dispatch({ type: 'reject-proposal' });
+  resolveAnalysis({ ok: true, value: {
+    id: 'proposal-late', baseIdentityRevision: 1,
+    operations: [{ op: 'set-palette', field: 'complexion', value: { primary: '#8899aa', shadow: '#667788', highlight: '#aabbcc' }, provenance: { source: 'photo-analysis', sourcePhotoIds: ['photo-1'], evidenceState: 'available', analyzerVersion: 'test-v1', confidence: 'high' } }],
+    evidencePhotoIds: ['photo-1'], analyzerVersion: 'test-v1', confidence: 'high', warnings: [],
+  } });
+  assert.equal((await pending).fault.kind, 'stale-analysis');
+  assert.equal(session.getViewModel().proposal, null);
+  session.dispose();
+});
+
+test('update safety reports an in-flight destructive library migration', async () => {
+  const kernel = createAvatarKernel();
+  const initial = kernel.start().value;
+  const memory = createMemoryLibrary(initial.recipe);
+  let releaseReset;
+  const library = {
+    ...memory,
+    reset: () => new Promise((resolve) => { releaseReset = () => resolve(initial); }),
+  };
+  const reports = [];
+  const session = createStudioSession({
+    kernel,
+    library,
+    minecraftCompiler: createMinecraftCompiler(),
+    reportUpdateSafety: (value) => reports.push(value),
+  });
+  const resetting = session.dispatch({ type: 'confirm-reset-person' });
+  while (!releaseReset) await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(reports.at(-1), { hasUnsavedDraft: false, hasMigration: true });
+  releaseReset();
+  await resetting;
+  assert.deepEqual(reports.at(-1), { hasUnsavedDraft: false, hasMigration: false });
+  session.dispose();
 });

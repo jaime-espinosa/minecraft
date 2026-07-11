@@ -59,6 +59,9 @@ export function createPhotoNormalizer(deps) {
         const rollbackError = await rollback();
         if (rollbackError) return err({ kind: 'normalization-failed', message: `${error.message}; rollback failed: ${rollbackError.message}` });
         if (error.kind === 'cancelled') return err({ kind: 'cancelled', message: error.message });
+        if (error.kind === 'quota-exceeded' && error.recoverableEnvelope) {
+          return { ok: false, fault: { kind: 'quota-exceeded', message: error.message }, recoverableEnvelope: error.recoverableEnvelope };
+        }
         return err({ kind: 'normalization-failed', message: error.message });
       }
       finally {

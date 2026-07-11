@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { canonicalJson } from '../../src/domain/canonical-json.js';
 import { createDefaultIdentity } from '../../src/domain/defaults.js';
 import { exportLibraryBackup, importLibraryBackup } from '../../src/identity-library/backup.js';
+import * as backupModule from '../../src/identity-library/backup.js';
 import { openIdentityLibrary } from '../../src/identity-library/repository.js';
 import { createFakeIndexedDB, createNormalizedPhoto } from '../support/fake-indexeddb.js';
 
@@ -93,4 +94,53 @@ test('backup replacement rejects a lineage changed between authorization read an
   const state = await first.readLibrary();
   assert.equal(state.meta.libraryId, 'library-2');
   assert.deepEqual(state.identities, []); assert.deepEqual(state.recipes, []);
+});
+
+test('foreign backup disaster recovery requires its own explicit confirmation while ordinary import still rejects', async () => {
+  assert.equal(typeof backupModule.restoreLibraryBackupAsNewPerson, 'function');
+  const { restoreLibraryBackupAsNewPerson } = backupModule;
+  const source = await open('library-a');
+  const backup = await exportLibraryBackup(source);
+  const target = await open('library-b');
+
+  assert.equal((await importLibraryBackup(target, backup.value.document, { confirmed: true })).fault.kind, 'foreign-library');
+  assert.equal((await restoreLibraryBackupAsNewPerson(target, backup.value.document)).fault.kind, 'confirmation-required');
+  assert.equal((await target.readLibrary()).meta.libraryId, 'library-b');
+
+  const restored = await restoreLibraryBackupAsNewPerson(target, backup.value.document, { confirmed: true });
+  assert.equal(restored.ok, true);
+  const state = await target.readLibrary();
+  assert.equal(state.meta.libraryId, 'library-a');
+  assert.deepEqual(state.identities, [backup.value.document.activeIdentity]);
+  assert.deepEqual(state.recipes, backup.value.document.recipes);
+});
+
+test('foreign backup disaster recovery rejects a populated current library', async () => {
+  const source = await open('library-a');
+  const backup = await exportLibraryBackup(source);
+  const target = await open('library-b');
+  await target.storeNormalizedPhoto(createNormalizedPhoto());
+  const before = await target.readLibrary();
+
+  const result = await backupModule.restoreLibraryBackupAsNewPerson(target, backup.value.document, { confirmed: true });
+  assert.equal(result.fault.kind, 'restore-not-pristine');
+  assert.deepEqual(await target.readLibrary(), before);
+});
+
+test('foreign backup disaster recovery rolls back all six stores when the atomic transaction fails', async () => {
+  assert.equal(typeof backupModule.restoreLibraryBackupAsNewPerson, 'function');
+  const { restoreLibraryBackupAsNewPerson } = backupModule;
+  const source = await open('library-a');
+  const backup = await exportLibraryBackup(source);
+  const target = await open('library-b');
+  const before = await target.readLibrary();
+
+  const result = await restoreLibraryBackupAsNewPerson(target, backup.value.document, {
+    confirmed: true,
+    beforeCommit() { throw new Error('simulated restore failure'); },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.fault.message, /simulated restore failure/);
+  assert.deepEqual(await target.readLibrary(), before);
 });

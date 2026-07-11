@@ -151,9 +151,9 @@ test('Pages stager uses committed blobs and rejects dirty allowlisted symlinks o
 });
 
 test('manifest and registration use the exact Pages scope and expose user-controlled update UI',async()=>{
-  const [manifestSource,html,app]=await Promise.all([read('manifest.webmanifest'),read('index.html'),read('app.js')]), manifest=JSON.parse(manifestSource);
+  const [manifestSource,html,app]=await Promise.all([read('manifest.webmanifest'),read('index.html'),read('src/integration/app-controller.js')]), manifest=JSON.parse(manifestSource);
   assert.equal(manifest.id,'/my-avatars/'); assert.equal(manifest.scope,'/my-avatars/'); assert.equal(manifest.start_url,'/my-avatars/#/studio'); assert.equal(manifest.display,'standalone');
   assert.deepEqual(manifest.icons,[{src:'/my-avatars/icons/my-avatars.svg',sizes:'any',type:'image/svg+xml',purpose:'any maskable'}]);
   assert.match(html,/rel="manifest" href="manifest\.webmanifest"/); assert.match(html,/id="pwa-update-notice"[^>]*role="status"[^>]*hidden/); assert.match(html,/id="reload-update"/);
-  assert.match(app,/addEventListener\(['"]load['"]/); assert.match(app,/import\(['"]\.\/src\/pwa\/register-service-worker\.js['"]\)/); assert.match(app,/session\.getUpdateSafety/); assert.doesNotMatch(app,/let hasUnsavedDraft|const migrationInProgress/);
+  assert.match(app,/addEventListener\(['"]load['"]/); assert.match(app,/import\(['"]\.\.\/pwa\/register-service-worker\.js['"]\)/); assert.match(app,/session\.dispatch\(\{\s*type: 'reload-update'/); assert.match(app,/getUpdateSafety: runtime\.getUpdateSafety/); assert.doesNotMatch(app,/hasUnsavedDraft:\s*false|migrationInProgress:\s*false/);
 });
