@@ -1,0 +1,5 @@
+# My Avatars Minecraft Slim v1 pinned reviewed regression golden, 64x64x4 RGBA, raw DEFLATE then base64.
+# SHA-256: f0050672e196f7ac8913d91a7abc26c8a866fdb1faaa087ac100673467359ac3
+# Provenance: reviewed Task 3 pre-commit painter output from the synthetic default snapshot; contains no photos.
+# This captured regression golden is not the separately authored UV/color oracle in minecraft-validator.test.js.
+7dkxCsIwFMbxnsJJqkhBEIoUB0dBQVxcHBTBwUUQ9BC9gAqewt1TeBNvEVcb9L3WNIPt/8EHhfY1+REIDQ0CuZ73k5Fy2c7EBI61mwyMlLjZEOM6Pn78+PHjx19Fvzb/x3kvRuvXos1/3GuJ0fq14Mefxx+1w4/XrL+bP/Bc+MvxL+N+Jqx/Nfz284tDat7TSUaZaOOtrjcjpTvfiCny/iJ9eQs//jr5bV8yXWdi37djz394TMVofi1534UfP378+PHjx/+torBpXIIf/z/7Of/hx8/5n+8f/Pjx48ePHz9+/Pir7y/7/FPm+ekXj2s/fvx18rvufz73zzz7m2s/fvz48ePHjx9/0fn7/H+MH79v/ws=
