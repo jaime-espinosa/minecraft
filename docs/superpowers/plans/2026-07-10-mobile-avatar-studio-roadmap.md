@@ -38,4 +38,7 @@ feat: enable consented research contribution
 ```
 
 Each commit must be deployable or intentionally leave a feature behind a default-off flag. Never combine a Solid regression fix with backend enablement.
+# Status: Implementation Reference Under Final Solution
+
+Use this roadmap only with `docs/FINAL_SOLUTION.md`, `docs/PRIVACY_AND_SAFETY.md`, and `docs/TESTING_AND_RELEASE.md`. Those documents override earlier required-photo, IP-gated, shared-module, telemetry, or viewer assumptions.
 

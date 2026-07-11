@@ -220,3 +220,6 @@ Browsers never receive a GitHub credential and never append directly to reposito
 4. Arbitrary code generation or deployment from Workshop text.
 5. Direct browser writes to GitHub.
 6. Roblox export before the shared ingredient analysis pipeline is reliable.
+# Status: Historical / Partially Superseded
+
+This document preserves the mobile design exploration. `docs/FINAL_SOLUTION.md` is authoritative. In particular, Workshop authentication is password-based rather than IP-based, Solid and Experimental are isolated route modules, exact 2D output is authoritative, Three.js is optional, and remote prompt collection remains disabled until the privacy gate passes.
